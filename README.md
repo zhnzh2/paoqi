@@ -28,6 +28,7 @@
 
 ```bash
 python main.py
+```
 
 ## 🧩 核心规则（简要）
 
