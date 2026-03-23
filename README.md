@@ -83,6 +83,8 @@ paoqi/
 ├── record.py       # 棋谱记录
 ├── undo.py         # 撤销系统
 ├── main.py         # 程序入口
+```
+
 
 ## 未来计划
 
