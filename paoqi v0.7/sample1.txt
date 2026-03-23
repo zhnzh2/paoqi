@@ -1,0 +1,17 @@
+move 8 9
+move 1 2
+move 7 9
+fire 1
+move 2 2
+move 9 8
+move 2 3
+move 8 8
+move 3 3
+move 7 8
+fire 1
+move 3 4
+move 8 7
+move 4 4
+move 6 7
+fire 1
+move 4 5
