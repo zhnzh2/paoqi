@@ -1,0 +1,267 @@
+第1局：winner=R, steps=155, terminal=True
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B3 B4 B3 B5 B3 B5 B3 B4 B3
+ 2 | B4 B3 B4 B5 B4 B5 B3 B4 B3
+ 3 | B3 B4 B3 B4 B3 B5 B4 R3 R3
+ 4 | B4 B3 B3 R3 R3 R2 R2 R4 R4
+ 5 | R2 R2 R3 R4 R3 R5 R3 R4 R3
+ 6 | R5 R3 R4 R4 R5 R4 R5 R5 R5
+ 7 | R3 R4 R3 R5 R4 R3 R4 R3 R1
+ 8 | R4 R5 R5 R5 R3 R4 R5 R4 R5
+ 9 | R3 R4 R3 R5 R3 R4 R3 R5 R1
+
+第2局：winner=None, steps=300, terminal=False
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1 B2 B1 B2 B1 B2 B1 B2 B1
+ 2 | B2  . B3 B1 B2 B1 B2 B1 B2
+ 3 | B1  . B1  .  .  .  . B2 B1
+ 4 | B2  . B2  .  . B1 B1 B2 B2
+ 5 | B1 B2 B1  .  .  .  . B1 B1
+ 6 | B2  . R1 R1  .  .  .  . R1
+ 7 | R1 R2 R1 R2  .  .  .  . R1
+ 8 | R2 R2 R2 R1 R3 R2 R2 R1 R2
+ 9 | R1 R2 R1 R5 R3 R4 R3 R2 R1
+
+第3局：winner=R, steps=166, terminal=True
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B3 B5 B3 B4 B3 B4 B3 B5 B5
+ 2 | B4 B5 B4 B5 B4 B5 B4 B5 B4
+ 3 | B4 B3 B3 B4 B3 B4 B3 B4 B3
+ 4 | R3 R4 R3 R5 R4 R3 R3 B3 B5
+ 5 | R4 R5 R3 R4 R3 R5 R3 R3 B3
+ 6 | R3 R4 R5 R3 R4 R3 R5 R1 R1
+ 7 | R4 R3 R4 R3 R2 R5 R3 R4 R3
+ 8 | R3 R4 R4 R5 R3 R4 R4 R5 R2
+ 9 | R3 R4 R3 R5 R1 R5 R3 R5 R4
+
+第4局：winner=R, steps=162, terminal=True
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B3 B5 B3 B4 B3 B5 B3 B4 B3
+ 2 | B4 B4 B3 B5 B5 B4 B5 B5 B4
+ 3 | B3 B3 R3 R4 R3 R2 B3 B4 B3
+ 4 | R2 R3 R5 R4 R5 R5 R3 R3 B3
+ 5 | R1 R5 R5 R5 R5 R5 R4 R3 R2
+ 6 | R5 R4 R3 R4 R3 R4 R3 R4 R5
+ 7 | R4 R3 R5 R3 R5 R5 R4 R3 R3
+ 8 | R4 R4 R3 R4 R3 R5 R3 R4 R4
+ 9 | R5 R4 R5 R4 R5 R3 R4 R3 R3
+
+第5局：winner=R, steps=130, terminal=True
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B4 B5 B3 B4 B3 B5 B3 B4 B3
+ 2 | B1 B3 B4 B3 B5 B2 B4 B3 B4
+ 3 | R3 R5 R3 B2 B3 B5 B3 B4 B3
+ 4 | R4 R3 R4 R3 B4 B3 B4 B3 B5
+ 5 | R3 R4 R3 R5 R3 B4 B3 B4 B3
+ 6 | R4 R3 R5 R3 R4 B3 B5 B3 B1
+ 7 | R3 R4 R3 R4 R3 R3 B4 B1 B3
+ 8 | R5 R3 R4 R3 R5 R3 R5 R3 R3
+ 9 | R4 R5 R3 R5 R3 R4 R3 R4 R3
+
+第6局：winner=B, steps=158, terminal=True
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1 B5 B3 B4 B3 B5 B2 B3 B1
+ 2 | B3 B4 B3 B5 B3 B5 B3 B4 B3
+ 3 | B1 B4 B1 B4 B4 B3 B4 B3 B4
+ 4 | B3 B3 B5 B5 B4 B5 B4 B5 B3
+ 5 | B1 B4 B1 B4 B5 B3 B3 R3 R3
+ 6 | B3 B3 B4 B3 B5 R3 R4 R3 R5
+ 7 | B1 B5 R3 R3 R5 R5 R3 R4 R3
+ 8 | R3 R3 R4 R4 R5 R3 R4 R3 R4
+ 9 | R3 R4 R3 R4 R3 R5 R5 R5 R3
+
+第7局：winner=R, steps=66, terminal=True
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B3 B5 B3 B4 B3 B4 B3 B5 B3
+ 2 | B3 B5 B3 B4 B3 B4 B3 B4 B3
+ 3 | R1 R5 R3 R4 R3 R5 R3 R4 R3
+ 4 | R2  . R1  .  .  .  .  . R4
+ 5 | R1 R4 R3 R2 R3 R2 R3 R1 R3
+ 6 | R2  .  .  .  .  .  .  . R4
+ 7 | R1  .  .  .  .  .  .  . R3
+ 8 | R1  .  .  .  .  .  .  . R5
+ 9 |  .  .  .  .  .  .  .  . R1
+
+第8局：winner=None, steps=300, terminal=False
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1  .  .  .  .  .  .  . R1
+ 2 | B2  .  .  .  .  .  .  . R2
+ 3 | B1  .  .  .  .  .  .  . R1
+ 4 | B2 B1  .  .  .  .  .  . R5
+ 5 | B1  .  .  .  .  .  . R1 R3
+ 6 | B2  .  .  . B1  . R1 R1 R4
+ 7 | B1 B2 B3 B4 B3 B5 R1 R2 R3
+ 8 | B2  .  .  . B1  . R2 R2 R2
+ 9 | B1  .  . R1  . R2 R1 R2 R1
+
+第9局：winner=B, steps=152, terminal=True
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B3 B4 B3 B5 B3 B4 B3 B5 B3
+ 2 | B3 B4 B4 B5 B4 B5 B5 B3 B3
+ 3 | B1 B3 B3 B4 B3 B4 B3 B5 B5
+ 4 | R3 R3 B5 B5 B5 B5 B4 B5 B4
+ 5 | R4 R4 R5 B4 B3 B4 B3 B5 B5
+ 6 | R3 R3 R4 R3 R5 R3 R5 R3 R3
+ 7 | R5 R4 R5 R4 R3 R4 R3 R4 R4
+ 8 | R3 R3 R4 R3 R4 R5 R4 R3 R3
+ 9 | R3 R5 R3 R5 R3 R4 R3 R5 R4
+
+第10局：winner=B, steps=148, terminal=True
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1 B3 B1 B5 B1 B5 B3 B4 B3
+ 2 | B5 B3 B4 B3 B5 B3 B4 B3 B1
+ 3 | B2 B4 B1 B4 B2 B3 B1 B1 R3
+ 4 | B4 B3 B4 B3 B5 B5 B3 R4 R4
+ 5 | B3 B5 B3 B5 B4 B3 B3 R3 R3
+ 6 | B5 B3 B1 B3 B3 B5 R3 R4 R5
+ 7 | R4 R3 R4 R3 R4 R3 R4 R3 R3
+ 8 | R5 R4 R5 R4 R5 R3 R4 R5 R4
+ 9 | R3 R4 R3 R4 R3 R4 R3 R5 R3
+
+第11局：winner=None, steps=300, terminal=False
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1 B2 B1 B2 B1 B2 B1 B2 B1
+ 2 | B2 B1  .  . B2 B1  .  .  .
+ 3 | B1  .  .  . B1  .  .  .  .
+ 4 | R1 R2 R2 R1 B2 B1  .  .  .
+ 5 | R1 R3 R1 R2 R1  .  .  .  .
+ 6 | R2 R3 R2 R2 R4 R1 R3  .  .
+ 7 | R1 R3 R1 R2 R3 R2 R3 R1  .
+ 8 | R2 R2 R4 R5 R4 R5 R4 R5 R1
+ 9 | R5 R4 R5 R4 R3 R2 R3 R2 R3
+
+第12局：winner=None, steps=300, terminal=False
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1 B2 B1 B2 B1 B2 B1 B2 B1
+ 2 |  .  .  .  . B2 B1 B2  .  .
+ 3 |  . R1  . B1 B3 B1 B2 B1 B1
+ 4 |  . R1  . B1 B2 B3 B3 B2  .
+ 5 |  . R2 B1 B2 B3 B1 B2 B1 B1
+ 6 |  . R1  .  . R1 R2 R1  .  .
+ 7 |  . R2 R1 R2 R3 R4 R3 R3  .
+ 8 | R1 R1 R2 R3 R3 R3 R2 R2  .
+ 9 |  . R4 R3 R4 R3 R2 R1 R2 R1
+
+第13局：winner=None, steps=300, terminal=False
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1 B2 B1 B2 B1 B2 B1 B2 B1
+ 2 |  .  .  .  . B2 B3 B2 B4 B2
+ 3 |  . B1 B1 B2 B1 B2 B1 B2 B1
+ 4 |  .  .  .  . B2  . B2 B2 R4
+ 5 |  .  .  .  . B1  . B1 R1 R3
+ 6 |  .  .  .  . B1  . R1 R1 R4
+ 7 |  .  .  .  .  .  . R1 R2 R3
+ 8 |  .  .  .  . R1 R1 R2 R2 R2
+ 9 | R1 R2 R1 R2 R1 R2 R1 R2 R1
+
+第14局：winner=None, steps=300, terminal=False
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | R1 R1 R3 R2 R1 B3 B1 B3 B1
+ 2 | R1 R2 R4 R3 B1 B1 B3 B4 B3
+ 3 | R2 R1 R3 R1 R1 B5 B3 B4 B3
+ 4 | R4 R3 R4 R3 R5 R4 B2 B3 B1
+ 5 | R2 R3 R5 R4 R3 R2 R3 R2 R3
+ 6 | R3 R2 R4 R1 R4 R3 R1 R3 R1
+ 7 | R2 R3 R5 R3 R5 R2 R3 R3 R3
+ 8 | R3 R2 R4 R2 R4 R3 R1 R3 R1
+ 9 | R1 R4 R3 R4 R3 R2 R3 R2 R2
+
+第15局：winner=None, steps=300, terminal=False
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1 B2 B1 B2 B1 B2 B1 B2 B1
+ 2 | B2 B1 B2  . B2  .  .  .  .
+ 3 | B1 B3 B1 B3 B1  .  .  .  .
+ 4 | B1 B3 B2 B4 B2 B3 B2 B2  .
+ 5 | R1 R5 B1 B3 B1 B2 B1 B2 B1
+ 6 | R5 R3  . B4 B2 R1  .  .  .
+ 7 | R3 R4 R1 R2 R3 R2 R2  .  .
+ 8 | R4 R3 R4 R3 R3 R3 R2 R3 R1
+ 9 | R3 R4 R3 R4 R3 R4 R3 R5 R3
+
+第16局：winner=R, steps=157, terminal=True
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B3 B4 B3 R4 R3 R4 R3 R4 R5
+ 2 | B4 B3 B4 R3 R4 R3 R5 R3 R4
+ 3 | B3 B4 B3 R3 R5 R5 R3 R5 R3
+ 4 | B5 B3 B5 B3 R4 R3 R4 R4 R5
+ 5 | B3 B4 B4 B5 B4 R4 R3 R4 R3
+ 6 | B5 B3 B3 B4 B3 R3 R4 R3 R4
+ 7 | B3 B4 B4 B5 B4 R5 R3 R4 R3
+ 8 | B4 B3 B3 B4 B3 R3 R5 R3 R5
+ 9 | B4 B1 B5 B3 B3 R5 R3 R4 R3
+
+第17局：winner=None, steps=300, terminal=False
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1 B2 B1 B2 B1 B2 B1 B2 B1
+ 2 |  .  .  . B1 B2 B3 B2 B5 B2
+ 3 |  .  .  . B2 B3 B2 B1 B2 B1
+ 4 |  .  .  . B1 B4  .  . B2 B1
+ 5 |  .  .  . B1 B3 B1  .  . R3
+ 6 |  .  . R1  . B5  . R2  . R4
+ 7 |  . R1 R1 R2 R1 R2 R1  . R3
+ 8 |  .  . R2 R1 R2 R2 R2  . R5
+ 9 | R1 R2 R1 R2 R1 R2 R1 R2 R1
+
+第18局：winner=B, steps=161, terminal=True
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B3 B4 B3 B5 B3 R3 R5 R3 R3
+ 2 | B4 B3 B4 B3 B4 R4 R5 R4 R4
+ 3 | B3 B4 B3 B5 B3 R3 R4 R3 R3
+ 4 | B5 B3 B5 B3 B4 R3 R5 R3 R4
+ 5 | B4 B5 B5 B4 B3 R4 R5 R4 R5
+ 6 | B3 B4 B3 B5 B5 R3 R5 R3 R5
+ 7 | B4 B3 B4 B3 B5 R5 R3 R5 R3
+ 8 | B3 B5 B3 B4 B3 R3 R4 R3 R4
+ 9 | B3 B4 B3 B4 B3 R4 R3 R5 R3
+
+第19局：winner=None, steps=300, terminal=False
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1  .  .  . B1 B1 R1 R2 R1
+ 2 | B2 B1 B2 B1 B2 B2 R2 R2 R2
+ 3 | B1  .  .  .  . B1 R1 R2 R1
+ 4 | B2  .  .  .  . B1 R1 R1 R5
+ 5 | B1  .  .  .  .  .  . R2 R3
+ 6 | B2  .  .  .  .  .  . R1 R4
+ 7 | B1  .  .  .  .  .  . R2 R3
+ 8 | B2 B1  .  .  .  .  . R1 R2
+ 9 | B1  .  .  .  .  .  .  . R1
+
+第20局：winner=None, steps=300, terminal=False
+      1  2  3  4  5  6  7  8  9
+    ---------------------------
+ 1 | B1 B1 R5 R2 R3 R2 R1 R2 R1
+ 2 | B2 B3  .  . R1 R1 R5 R1 R2
+ 3 | B1 B5 B3 B4 B3 R1 R3 R2 R1
+ 4 | B2 B3 B1 B1 B4 R2 R5 R3 R2
+ 5 | B1 B4 B3 B4 B3 R1 R3 R3 R3
+ 6 | B2 B3 B1 B1 B3 R2 R4 R2 R4
+ 7 | B1 B5 B2  .  . R1 R3 R3 R3
+ 8 | B2 B3 B2 R1 R2 R3 R2 R2 R5
+ 9 | B1 B2  . R1 R2 R1  . R1 R1
+
+统计结果：
+总局数：20
+红方 AlphaBeta(depth=3) 胜：6
+蓝方 Greedy 胜：4
+平局/未分胜负：10
+红方胜率：30.00%
+蓝方胜率：20.00%

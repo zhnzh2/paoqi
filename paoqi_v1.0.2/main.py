@@ -305,7 +305,7 @@ def print_post_action_feedback_from_result(game: Game, result: dict) -> None:
 def main() -> None:
     game = Game()
 
-    print("欢迎来到 炮棋 v0.8！")
+    print("欢迎来到 炮棋 v1.0.0！")
     print("当前版本实现：基本落子/升级规则，炮管扫描，炮口选择，打炮、吃子与双方连锁结算。")
     print("当前版本支持正式棋谱记录，以及对落子、选炮口、打炮、吃子等操作进行连续撤销。")
     print_help()
