@@ -1,6 +1,35 @@
+#test_vs_greedy.py
 from game import Game
 from AI import AlphaBetaAgent, GreedyAgent
+from match_io import save_match_result
 
+def encode_board_numeric(game: Game) -> list[list[int]]:
+    rows = []
+    for y in range(1, 10):
+        row = []
+        for x in range(1, 10):
+            piece = game.board.get(x, y)
+            if piece is None:
+                row.append(0)
+            elif piece.color == "R":
+                row.append(piece.level)
+            else:
+                row.append(-piece.level)
+        rows.append(row)
+    return rows
+
+def encode_board_compact(game: Game) -> list[list[str]]:
+    rows = []
+    for y in range(1, 10):
+        row = []
+        for x in range(1, 10):
+            piece = game.board.get(x, y)
+            if piece is None:
+                row.append(".")
+            else:
+                row.append(f"{piece.color}{piece.level}")
+        rows.append(row)
+    return rows
 
 def run_one_game(red_depth: int = 2, max_steps: int = 300):
     game = Game()
@@ -9,6 +38,8 @@ def run_one_game(red_depth: int = 2, max_steps: int = 300):
     blue_agent = GreedyAgent(color="B", verbose=False)
 
     step = 0
+    action_log = []
+    state_log = []
 
     while not game.is_terminal() and step < max_steps:
         if game.current_player == "R":
@@ -21,6 +52,24 @@ def run_one_game(red_depth: int = 2, max_steps: int = 300):
             print("没有合法动作，测试终止。")
             break
 
+        state_log.append(
+            {
+                "step": step + 1,
+                "player": game.current_player,
+                "phase": game.phase,
+                "board": encode_board_compact(game),
+                "board_numeric": encode_board_numeric(game),
+            }
+        )
+
+        action_log.append(
+            {
+                "step": step + 1,
+                "player": game.current_player,
+                "action": action,
+            }
+        )
+
         game.apply_action(action)
         step += 1
 
@@ -31,12 +80,35 @@ def run_one_game(red_depth: int = 2, max_steps: int = 300):
     else:
         winner = game.get_winner()
 
+    red_score, blue_score = game.calculate_score()
+
+    training_samples = []
+    for action_item, state_item in zip(action_log, state_log):
+        player = action_item["player"]
+        training_samples.append(
+            {
+                "step": action_item["step"],
+                "player": player,
+                "phase": state_item["phase"],
+                "board": state_item["board"],
+                "board_numeric": state_item["board_numeric"],
+                "action": action_item["action"],
+                "winner": winner,
+                "is_winner_move": (winner is not None and player == winner),
+            }
+        )
+
     return {
         "winner": winner,
         "steps": step,
         "terminal": game.is_terminal(),
         "reached_step_limit": reached_step_limit,
+        "red_score": red_score,
+        "blue_score": blue_score,
         "final_board": game.board.render(),
+        "history_text": game.history_text(),
+        "action_log": action_log,
+        "training_samples": training_samples,
     }
 
 
@@ -59,9 +131,22 @@ def run_series(n: int = 20, red_depth: int = 2, max_steps: int = 300):
         print(
             f"第{i + 1}局：winner={winner}, "
             f"steps={result['steps']}, terminal={result['terminal']}, "
-            f"step_limit={result['reached_step_limit']}"
+            f"step_limit={result['reached_step_limit']}, "
+            f"score=({result['red_score']}, {result['blue_score']})"
         )
         print(result["final_board"])
+
+        saved_path = save_match_result(
+            result={
+                "mode": "ai_vs_greedy",
+                "red_depth": red_depth,
+                "game_index": i + 1,
+                **result,
+            },
+            folder="match_logs/ai_vs_greedy",
+            prefix="ai_vs_greedy",
+        )
+        print(f"已保存：{saved_path}")
         print()
 
     print("统计结果：")
@@ -74,4 +159,4 @@ def run_series(n: int = 20, red_depth: int = 2, max_steps: int = 300):
 
 
 if __name__ == "__main__":
-    run_series(n=20, red_depth=3, max_steps=300)
+    run_series(n=3, red_depth=3, max_steps=300)

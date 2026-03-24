@@ -154,7 +154,6 @@ def save_game_to_file(game: Game, filename: str) -> None:
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-
 def load_game_from_file(filename: str) -> Game:
     with open(filename, "r", encoding="utf-8") as f:
         data = json.load(f)
