@@ -1,5 +1,5 @@
-from game import Game
-from AI import RandomAgent
+from core.game import Game
+from core.AI import RandomAgent
 
 
 def run_one_random_game(max_steps: int = 300):

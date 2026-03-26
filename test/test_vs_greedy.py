@@ -1,7 +1,7 @@
-#test_ai_vs_ai.py
-from game import Game
-from AI import AlphaBetaAgent
-from match_io import save_match_result
+#test_vs_greedy.py
+from core.game import Game
+from core.AI import AlphaBetaAgent, GreedyAgent
+from tools.match_io import save_match_result
 
 def encode_board_numeric(game: Game) -> list[list[int]]:
     rows = []
@@ -31,11 +31,11 @@ def encode_board_compact(game: Game) -> list[list[str]]:
         rows.append(row)
     return rows
 
-def run_one_game(red_depth, blue_depth, max_steps, verbose: bool):
+def run_one_game(red_depth: int = 2, max_steps: int = 300):
     game = Game()
 
-    red_agent = AlphaBetaAgent(color="R", depth=red_depth, verbose=verbose)
-    blue_agent = AlphaBetaAgent(color="B", depth=blue_depth, verbose=verbose)
+    red_agent = AlphaBetaAgent(color="R", depth=red_depth, verbose=True)
+    blue_agent = GreedyAgent(color="B", verbose=False)
 
     step = 0
     action_log = []
@@ -51,9 +51,6 @@ def run_one_game(red_depth, blue_depth, max_steps, verbose: bool):
         if action is None:
             print("没有合法动作，测试终止。")
             break
-
-        if verbose:
-            print(f"Step {step + 1}: 玩家 {game.current_player} 选择 {action}")
 
         state_log.append(
             {
@@ -115,19 +112,13 @@ def run_one_game(red_depth, blue_depth, max_steps, verbose: bool):
     }
 
 
-def run_series(n, red_depth, blue_depth, max_steps):
+def run_series(n: int = 20, red_depth: int = 2, max_steps: int = 300):
     red_win = 0
     blue_win = 0
     draw = 0
 
     for i in range(n):
-        result = run_one_game(
-            red_depth=red_depth,
-            blue_depth=blue_depth,
-            max_steps=max_steps,
-            verbose=False,
-        )
-
+        result = run_one_game(red_depth=red_depth, max_steps=max_steps)
         winner = result["winner"]
 
         if winner == "R":
@@ -147,26 +138,25 @@ def run_series(n, red_depth, blue_depth, max_steps):
 
         saved_path = save_match_result(
             result={
-                "mode": "ai_vs_ai",
+                "mode": "ai_vs_greedy",
                 "red_depth": red_depth,
-                "blue_depth": blue_depth,
                 "game_index": i + 1,
                 **result,
             },
-            folder="match_logs/ai_vs_ai",
-            prefix="ai_vs_ai",
+            folder="match_logs/ai_vs_greedy",
+            prefix="ai_vs_greedy",
         )
         print(f"已保存：{saved_path}")
         print()
 
     print("统计结果：")
     print(f"总局数：{n}")
-    print(f"红方 AI(depth={red_depth}) 胜：{red_win}")
-    print(f"蓝方 AI(depth={blue_depth}) 胜：{blue_win}")
+    print(f"红方 AlphaBeta(depth={red_depth}) 胜：{red_win}")
+    print(f"蓝方 Greedy 胜：{blue_win}")
     print(f"平局/未分胜负：{draw}")
     print(f"红方胜率：{red_win / n:.2%}")
     print(f"蓝方胜率：{blue_win / n:.2%}")
 
 
 if __name__ == "__main__":
-    run_series(n=10, red_depth=3, blue_depth=2, max_steps=500)
+    run_series(n=3, red_depth=3, max_steps=300)

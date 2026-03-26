@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from board import Board, Position
-from models import Cannon, Piece
-from cannon import front_positions, cannon_positions_from_mouth
+from core.board import Board, Position
+from core.models import Cannon, Piece
+from core.cannon import front_positions, cannon_positions_from_mouth
 
 def signed_value(piece: Piece | None, firing_color: str) -> int:
     if piece is None:

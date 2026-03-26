@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple
 
-from models import Piece
+from core.models import Piece
 
 
 Position = Tuple[int, int]  # (x, y), both 1-based

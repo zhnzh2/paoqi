@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List
 
-from models import Piece, Cannon
+from core.models import Piece, Cannon
 
 def copy_board_grid(board_grid: list[list[Piece | None]]) -> list[list[Piece | None]]:
     copied: list[list[Piece | None]] = []

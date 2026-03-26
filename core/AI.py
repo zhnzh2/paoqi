@@ -6,7 +6,7 @@ import random
 from math import inf
 from typing import Any
 
-from game import Game
+from core.game import Game
 
 def evaluate(game: Game, perspective: str) -> float:
     if game.is_terminal():

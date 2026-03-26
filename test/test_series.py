@@ -1,6 +1,6 @@
 #test_series.py
-from game import Game
-from AI import AlphaBetaAgent, RandomAgent
+from core.game import Game
+from core.AI import AlphaBetaAgent, RandomAgent
 
 
 def run_one_game(red_depth: int = 2, max_steps: int = 300):

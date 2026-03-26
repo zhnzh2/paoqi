@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import List
 
-from board import Position
-from models import Cannon
+from core.board import Position
+from core.models import Cannon
 
 
 def player_name(color: str) -> str:

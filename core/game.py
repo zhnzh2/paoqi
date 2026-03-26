@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from typing import Any, List
 
-from board import Board, Position
-from models import Piece, Cannon
-from cannon import (
+from core.board import Board, Position
+from core.models import Piece, Cannon
+from core.cannon import (
     find_all_cannons,
     cannon_signature,
     cannon_contains,
@@ -14,14 +14,14 @@ from cannon import (
     front_positions,
 )
 
-from undo import snapshot_state, restore_state, copy_cannon
-from resolution import (
+from core.undo import snapshot_state, restore_state, copy_cannon
+from core.resolution import (
     collect_front_updates,
     collect_body_updates,
     apply_piece_updates,
     merge_reached_from_updates,
 )
-from record import (
+from core.record import (
     player_name,
     format_pos,
     mouth_text,
@@ -30,7 +30,7 @@ from record import (
     format_cannon_with_mouth_for_record,
     piece_text,
 )
-from state_io import (
+from core.state_io import (
     deserialize_cannon_data,
     deserialize_piece_data,
     export_board_state,
@@ -53,7 +53,7 @@ from state_io import (
     serialize_position,
     winner_code,
 )
-from events import (
+from core.events import (
     add_last_action_event,
     clear_last_action_events,
     get_last_action_events,

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
-from record import player_name
+from core.record import player_name
 
 if TYPE_CHECKING:
     from game import Game

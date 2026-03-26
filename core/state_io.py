@@ -3,12 +3,12 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
-from cannon import cannon_signature
-from models import Cannon, Piece
-from record import format_cannon_for_record, player_name
+from core.cannon import cannon_signature
+from core.models import Cannon, Piece
+from core.record import format_cannon_for_record, player_name
 
 if TYPE_CHECKING:
-    from game import Game
+    from core.game import Game
 
 
 def phase_code(game: "Game") -> str:
@@ -303,7 +303,7 @@ def import_full_state(game: "Game", data: dict[str, Any]) -> None:
 
 
 def from_exported_state(data: dict[str, Any]) -> "Game":
-    from game import Game
+    from core.game import Game
 
     game = Game()
     import_full_state(game, data)

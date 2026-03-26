@@ -1,6 +1,6 @@
 #main.py
 import json
-from game import Game
+from core.game import Game
 
 def print_help() -> None:
     print("可用命令：")

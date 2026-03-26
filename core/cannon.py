@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import List, Tuple
 
-from board import Board, Position
-from models import Cannon, Piece
+from core.board import Board, Position
+from core.models import Cannon, Piece
 
 
 Position = Tuple[int, int]

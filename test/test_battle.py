@@ -1,5 +1,5 @@
-from game import Game
-from AI import AlphaBetaAgent, RandomAgent
+from core.game import Game
+from core.AI import AlphaBetaAgent, RandomAgent
 
 
 def run_ai_vs_random(max_steps: int = 1000):

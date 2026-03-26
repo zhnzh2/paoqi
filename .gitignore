@@ -2,10 +2,12 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+match_logs/
+datasets/
+
 .vscode/
-.venv/
-env/
-venv/
+.idea/
+
 *.log
-.DS_Store
-Thumbs.db
+*.tmp
