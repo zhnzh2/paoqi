@@ -717,16 +717,16 @@ class Game:
         return action
 
     def history_text(self) -> str:
-        from record import history_text
+        from core.record import history_text
         return history_text(self.history)
 
 
     def debug_text(self) -> str:
-        from record import debug_text
+        from core.record import debug_text
         return debug_text(self.debug_log)
 
     def fire_report_text(self) -> str:
-        from record import fire_report_text
+        from core.record import fire_report_text
         return fire_report_text(self.last_fire_report_lines)
     
     def add_auto_action_message(self, text: str) -> None:
@@ -1502,26 +1502,26 @@ class Game:
         return None
 
     def new_cannons_report(self) -> str:
-        from record import new_cannons_report
+        from core.record import new_cannons_report
         return new_cannons_report(self.last_new_cannons)
 
     def cannon_report(self) -> str:
-        from record import cannon_report
+        from core.record import cannon_report
         return cannon_report(
             self.get_cannons_by_color("R"),
             self.get_cannons_by_color("B"),
         )
 
     def pending_muzzle_report(self) -> str:
-        from record import pending_muzzle_report
+        from core.record import pending_muzzle_report
         return pending_muzzle_report(self.pending_muzzle_cannons)
 
     def fireable_report(self) -> str:
-        from record import fireable_report
+        from core.record import fireable_report
         return fireable_report(self.current_player, self.get_fireable_cannons())
 
     def capturable_report(self) -> str:
-        from record import capturable_report
+        from core.record import capturable_report
         return capturable_report(
             self.current_player,
             self.get_capturable_targets(self.current_player),

@@ -108,9 +108,16 @@ def train_actor_critic_selfplay(
     current_opponent_prob: float = 0.5,
     history_save_dir: str | None = "logs/actor_critic_histories",
     history_json_path: str | None = "logs/actor_critic_history.json",
+    initial_model_path: str | None = None,
     device: str = "cpu",
 ) -> tuple[ActorCriticMLP, list[dict[str, float]]]:
     model = ActorCriticMLP().to(device)
+
+    if initial_model_path is not None:
+        state_dict = torch.load(initial_model_path, map_location=device)
+        model.load_state_dict(state_dict)
+        print(f"已加载基础模型：{initial_model_path}")
+
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     history: list[dict[str, float]] = []

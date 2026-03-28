@@ -88,6 +88,15 @@ def parse_input_to_action(game: Game, text: str) -> dict | None:
                 "y": y,
             }
 
+    # 选炮口阶段：若只输入方向，默认作用于第 1 门待选新炮
+    if len(parts) == 1 and parts[0].lower() in {"left", "right", "up", "down"}:
+        if game.phase == "muzzle":
+            return {
+                "type": "muzzle",
+                "index": 1,
+                "direction": parts[0].lower(),
+            }
+
     # cannon i dir
     if head == "cannon":
         if len(parts) != 3:
