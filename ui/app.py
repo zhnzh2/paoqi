@@ -6,9 +6,10 @@ import json
 import pygame
 
 from core.game import Game
-from ui.constants import WINDOW_WIDTH, WINDOW_HEIGHT, FPS
+from ui.constants import WINDOW_WIDTH, WINDOW_HEIGHT, LOGICAL_WIDTH, LOGICAL_HEIGHT, FPS
 from ui.controller import (
     pixel_to_board,
+    window_to_logical,
     find_drop_action_by_cell,
     get_legal_cell_highlights,
     get_capturable_highlights,
@@ -30,7 +31,7 @@ def load_game_from_file(filename: str) -> Game:
 def run_app() -> None:
     pygame.init()
     pygame.display.set_caption("炮棋（桌面版测试界面）")
-    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), vsync=1)
     clock = pygame.time.Clock()
     fonts = make_fonts()
     quit_button_rect = get_quit_button_rect()
@@ -47,7 +48,7 @@ def run_app() -> None:
     running = True
     while running:
         snapshot = game.get_state_snapshot()
-        mouse_pos = pygame.mouse.get_pos()
+        mouse_pos = window_to_logical(*pygame.mouse.get_pos())
         legal_actions = game.get_legal_actions()
 
         legal_highlights = {}
@@ -83,7 +84,7 @@ def run_app() -> None:
 
             elif event.type == pygame.MOUSEMOTION:
                 mx, my = event.pos
-                mouse_pos = (mx, my)
+                mouse_pos = window_to_logical(mx, my)
                 hover_cannon_highlights = []
 
                 for rect, action in action_button_items:
@@ -102,7 +103,8 @@ def run_app() -> None:
                         break
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mx, my = event.pos
+                win_mx, win_my = event.pos
+                mx, my = window_to_logical(win_mx, win_my)
 
                 if quit_button_rect.collidepoint(mx, my):
                     running = False
@@ -183,7 +185,7 @@ def run_app() -> None:
                 if handled:
                     continue
 
-                board_pos = pixel_to_board(mx, my)
+                board_pos = pixel_to_board(win_mx, win_my)
 
                 if board_pos is not None:
                     x, y = board_pos

@@ -8,28 +8,39 @@ from ui.constants import (
     BOARD_ORIGIN_X,
     BOARD_ORIGIN_Y,
     BOARD_SIZE,
-    CELL_SIZE,
+    BOARD_CELL,
+    LOGICAL_WIDTH,
+    LOGICAL_HEIGHT,
+    WINDOW_WIDTH,
+    WINDOW_HEIGHT,
 )
+from ui.scale import ui
 
+def window_to_logical(mx: int, my: int) -> tuple[int, int]:
+    lx = int(mx * LOGICAL_WIDTH / WINDOW_WIDTH)
+    ly = int(my * LOGICAL_HEIGHT / WINDOW_HEIGHT)
+    return lx, ly
 
 def pixel_to_board(mx: int, my: int) -> tuple[int, int] | None:
-    rel_x = mx - BOARD_ORIGIN_X
-    rel_y = my - BOARD_ORIGIN_Y
+    mx, my = window_to_logical(mx, my)
+
+    origin_x = ui.x(BOARD_ORIGIN_X)
+    origin_y = ui.y(BOARD_ORIGIN_Y)
+    cell = ui.u(BOARD_CELL)
+
+    rel_x = mx - origin_x
+    rel_y = my - origin_y
 
     if rel_x < 0 or rel_y < 0:
         return None
 
-    col = rel_x // CELL_SIZE
-    row = rel_y // CELL_SIZE
+    col = rel_x // cell
+    row = rel_y // cell
 
     if not (0 <= col < BOARD_SIZE and 0 <= row < BOARD_SIZE):
         return None
 
-    # 你的游戏坐标是 1-based
-    x = int(col + 1)
-    y = int(row + 1)
-    return x, y
-
+    return int(col + 1), int(row + 1)
 
 def find_drop_action_by_cell(legal_actions: list[dict[str, Any]], x: int, y: int) -> dict[str, Any] | None:
     """
