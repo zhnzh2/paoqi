@@ -86,6 +86,7 @@ class Game:
 
         self.game_over = False
         self.winner: str | None = None
+        self.game_over_reason: str | None = None
 
         # 炮管记谱模式
         # 1 = 当前简洁形式（沿用 cannon.short()）
@@ -121,6 +122,10 @@ class Game:
 
         # 连续“无法继续结算”的方数
         self.chain_pass_count = 0
+
+        # 待自动执行动作（例如唯一可发射炮、唯一可吃目标）
+        self.pending_auto_action: dict[str, Any] | None = None
+        self.pending_auto_message: str = ""
 
     def opponent(self, color: str) -> str:
         return "B" if color == "R" else "R"
@@ -225,6 +230,17 @@ class Game:
         if self.phase == "fire":
             return "打炮阶段"
         return "吃子阶段"
+
+    def has_pending_auto_action(self) -> bool:
+        return self.pending_auto_action is not None
+
+    def clear_pending_auto_action(self) -> None:
+        self.pending_auto_action = None
+        self.pending_auto_message = ""
+
+    def set_pending_auto_action(self, action: dict[str, Any], message: str) -> None:
+        self.pending_auto_action = action
+        self.pending_auto_message = message
 
     #from state_io.py
     def phase_code(self) -> str:
@@ -664,6 +680,7 @@ class Game:
         if not self.is_action_legal(action):
             raise ValueError(f"非法动作：{action}")
 
+        self.clear_pending_auto_action()
         self._dispatch_action(action)
     
     def try_apply_action(self, action: dict[str, Any]) -> tuple[bool, str]:
@@ -795,7 +812,7 @@ class Game:
             return True
 
         if not self.can_player_move(self.current_player):
-            self.game_over = True
+            self.finish_game(reason="no_legal_move", winner=None)
             return True
 
         return False
@@ -1223,6 +1240,7 @@ class Game:
         self.current_player = self.opponent(self.current_player)
         self.turn_number += 1
 
+        self.clear_pending_auto_action()
         self.phase = "drop"
         self.pending_muzzle_cannons = []
         self.last_new_cannons = []
@@ -1368,6 +1386,7 @@ class Game:
         self.round_drop_player = None
         self.chain_pass_count = 0
 
+        self.clear_pending_auto_action()
         self.pending_muzzle_cannons = []
         self.last_new_cannons = []
         self.fire_cannon_pool = []
@@ -1395,32 +1414,25 @@ class Game:
 
                 if len(fireable) == 1:
                     cannon = fireable[0]
+                    action = self.get_legal_fire_actions()[0]
 
                     if self.last_new_cannons:
                         formed_text = "、".join(
                             format_cannon_for_record(c, self.cannon_record_style)
                             for c in self.last_new_cannons
                         )
-                        self.add_auto_action_message(
+                        message = (
                             f"本步形成{formed_text}\n"
-                            f"当前仅有 1 门可发射炮，已自动发射 "
+                            f"当前仅有 1 门可发射炮，可点击棋盘任意位置确认发射 "
                             f"{format_cannon_for_record(cannon, self.cannon_record_style)}"
                         )
                     else:
-                        self.add_auto_action_message(
-                            f"当前仅有 1 门可发射炮，已自动发射 "
+                        message = (
+                            f"当前仅有 1 门可发射炮，可点击棋盘任意位置确认发射 "
                             f"{format_cannon_for_record(cannon, self.cannon_record_style)}"
                         )
 
-                    self.add_last_action_event(
-                        self._make_event(
-                            "auto_action",
-                            action_type="fire",
-                            reason="single_fire_choice",
-                            cannon=self._serialize_cannon(cannon),
-                        )
-                    )
-                    self.fire_cannon_by_index(1)
+                    self.set_pending_auto_action(action, message)
                     return
 
                 self.phase = "eat"
@@ -1435,19 +1447,10 @@ class Game:
 
                 if len(targets) == 1:
                     x, y = targets[0]
-                    self.add_auto_action_message(
-                        f"当前仅有 1 个可吃目标，已自动吃掉 ({x}, {y})"
-                    )
-                    self.add_last_action_event(
-                        self._make_event(
-                            "auto_action",
-                            action_type="eat",
-                            reason="single_capture_choice",
-                            x=x,
-                            y=y,
-                        )
-                    )
-                    self.eat_target_by_index(1)
+                    action = self.get_legal_eat_actions()[0]
+                    message = f"当前仅有 1 个可吃目标，可点击棋盘任意位置确认吃掉 ({x}, {y})"
+
+                    self.set_pending_auto_action(action, message)
                     return
 
                 # 当前方已经无法继续结算
@@ -1500,6 +1503,31 @@ class Game:
         if blue_score > red_score:
             return "B"
         return None
+
+    def finish_game(
+        self,
+        reason: str,
+        winner: str | None = None,
+    ) -> None:
+        self.game_over = True
+        self.game_over_reason = reason
+
+        if winner is None:
+            winner = self.determine_winner_by_score()
+
+        self.winner = winner
+        self.phase = "drop"
+        self.clear_pending_auto_action()
+
+    def finish_by_agreement(self) -> None:
+        self.finish_game(reason="agreement", winner=None)
+
+    def resign(self, resigning_player: str | None = None) -> None:
+        if resigning_player is None:
+            resigning_player = self.current_player
+
+        winner = self.opponent(resigning_player)
+        self.finish_game(reason="resign", winner=winner)
 
     def new_cannons_report(self) -> str:
         from core.record import new_cannons_report
@@ -1561,5 +1589,8 @@ class Game:
     def get_winner(self) -> str | None:
         if not self.is_terminal():
             return None
+
+        if self.winner is not None:
+            return self.winner
 
         return self.determine_winner_by_score()

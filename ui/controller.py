@@ -121,3 +121,161 @@ def get_fire_cannon_highlights(
             )
 
     return result
+
+def find_eat_action_by_cell(
+    legal_actions: list[dict[str, Any]],
+    x: int,
+    y: int,
+) -> dict[str, Any] | None:
+    for action in legal_actions:
+        if action.get("type") != "eat":
+            continue
+        if action.get("x") == x and action.get("y") == y:
+            return action
+    return None
+
+
+def find_fire_actions_by_cell(
+    legal_actions: list[dict[str, Any]],
+    x: int,
+    y: int,
+) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+
+    for action in legal_actions:
+        if action.get("type") != "fire":
+            continue
+
+        cannon = action.get("cannon")
+        if not isinstance(cannon, dict):
+            continue
+
+        positions = cannon.get("positions", [])
+        for pos in positions:
+            px = pos.get("x")
+            py = pos.get("y")
+            if px == x and py == y:
+                result.append(action)
+                break
+
+    return result
+
+
+def get_hovered_drop_highlights(
+    legal_actions: list[dict[str, Any]],
+    hovered_cell: tuple[int, int] | None,
+) -> dict[tuple[int, int], str]:
+    if hovered_cell is None:
+        return {}
+
+    x, y = hovered_cell
+    action = find_drop_action_by_cell(legal_actions, x, y)
+    if action is None:
+        return {}
+
+    mode = action.get("mode")
+    if mode not in {"place", "upgrade"}:
+        return {}
+
+    return {(x, y): mode}
+
+
+def get_hovered_eat_cells(
+    legal_actions: list[dict[str, Any]],
+    hovered_cell: tuple[int, int] | None,
+) -> list[tuple[int, int]]:
+    if hovered_cell is None:
+        return []
+
+    x, y = hovered_cell
+    action = find_eat_action_by_cell(legal_actions, x, y)
+    if action is None:
+        return []
+
+    return [(x, y)]
+
+def get_hovered_fire_cannons(
+    legal_actions: list[dict[str, Any]],
+    hovered_cell: tuple[int, int] | None,
+) -> list[dict[str, Any]]:
+    if hovered_cell is None:
+        return []
+
+    x, y = hovered_cell
+
+    fire_actions = find_fire_actions_by_cell(legal_actions, x, y)
+    if fire_actions:
+        return fire_actions
+
+    return find_muzzle_actions_by_cell(legal_actions, x, y)
+
+def find_muzzle_actions_by_cell(
+    legal_actions: list[dict[str, Any]],
+    x: int,
+    y: int,
+) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+
+    for action in legal_actions:
+        if action.get("type") != "muzzle":
+            continue
+
+        cannon = action.get("cannon")
+        if not isinstance(cannon, dict):
+            continue
+
+        positions = cannon.get("positions", [])
+        if not positions:
+            continue
+
+        # 任意炮身格悬停都算命中，用于“进一步高亮”
+        for pos in positions:
+            px = pos.get("x")
+            py = pos.get("y")
+            if px == x and py == y:
+                result.append(action)
+                break
+
+    return result
+
+def find_muzzle_actions_by_endpoint(
+    legal_actions: list[dict[str, Any]],
+    x: int,
+    y: int,
+) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+
+    for action in legal_actions:
+        if action.get("type") != "muzzle":
+            continue
+
+        cannon = action.get("cannon")
+        if not isinstance(cannon, dict):
+            continue
+
+        positions = cannon.get("positions", [])
+        if not positions:
+            continue
+
+        xs = [pos.get("x") for pos in positions if isinstance(pos.get("x"), int)]
+        ys = [pos.get("y") for pos in positions if isinstance(pos.get("y"), int)]
+        if not xs or not ys:
+            continue
+
+        direction = action.get("direction")
+
+        if direction == "left":
+            target = (min(xs), ys[0])
+        elif direction == "right":
+            target = (max(xs), ys[0])
+        elif direction == "up":
+            target = (xs[0], min(ys))
+        elif direction == "down":
+            target = (xs[0], max(ys))
+        else:
+            continue
+
+        if target == (x, y):
+            result.append(action)
+
+    return result
