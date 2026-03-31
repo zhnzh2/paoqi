@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import pygame
 
 from core.game import Game
@@ -10,10 +9,6 @@ from ui.constants import WINDOW_WIDTH, WINDOW_HEIGHT, LOGICAL_WIDTH, LOGICAL_HEI
 from ui.controller import (
     pixel_to_board,
     window_to_logical,
-    find_drop_action_by_cell,
-    find_eat_action_by_cell,
-    find_fire_actions_by_cell,
-    find_muzzle_actions_by_endpoint,
     get_hovered_drop_highlights,
     get_hovered_eat_cells,
     get_hovered_fire_cannons,
@@ -21,24 +16,17 @@ from ui.controller import (
     get_fire_cannon_highlights,
 )
 from ui.renderer import make_fonts, render_all, get_quit_button_rect
-
-def save_game_to_file(game: Game, filename: str) -> None:
-    data = game.export_full_state()
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-def load_game_from_file(filename: str) -> Game:
-    with open(filename, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return Game.from_exported_state(data)
-
-def export_record_to_file(game: Game, filename: str) -> None:
-    with open(filename, "w", encoding="utf-8") as f:
-        if game.history:
-            f.write("\n".join(game.history))
-        else:
-            f.write("（暂无棋谱）")
+from ui.save_io import save_game_to_file, load_game_from_file, export_record_to_file
+from ui.logic_menu import make_quit_confirm_dialog, start_new_game_session, load_game_from_slot
+from ui.logic_overlay import (
+    handle_confirm_overlay_click,
+    handle_record_panel_click,
+    handle_slot_panel_click,
+    handle_settings_panel_click,
+    handle_game_over_overlay_click,
+)
+from ui.logic_click import handle_pending_auto_action_click, handle_board_phase_click
+from ui.logic_preview import compute_preview_board_data
 
 def run_app() -> None:
     pygame.init()
@@ -92,7 +80,40 @@ def run_app() -> None:
         if record_open:
             return "record"
         return None
-    
+
+    def reset_ui_runtime_state() -> None:
+        nonlocal menu_load_open
+        nonlocal settings_open, settings_save_open, settings_load_open
+        nonlocal record_open, record_scroll
+        nonlocal hovered_cell, preview_board_data
+        nonlocal confirm_dialog, confirm_action
+
+        menu_load_open = False
+        settings_open = False
+        settings_save_open = False
+        settings_load_open = False
+        record_open = False
+        record_scroll = 0
+        hovered_cell = None
+        preview_board_data = None
+        confirm_dialog = None
+        confirm_action = None
+
+    def enter_game_with(new_game: Game, message: str) -> None:
+        nonlocal game, app_mode, status_message, status_is_error
+
+        game = new_game
+        app_mode = "game"
+        reset_ui_runtime_state()
+        status_message = message
+        status_is_error = False
+
+    def open_quit_confirm() -> None:
+        nonlocal confirm_dialog, confirm_action
+
+        confirm_dialog = make_quit_confirm_dialog()
+        confirm_action = "quit"
+
     running = True
     while running:
         if app_mode == "game" and not game.game_over:
@@ -147,42 +168,15 @@ def run_app() -> None:
 
         preview_board_data = None
 
-        if (
-            app_mode == "game"
-            and not game.game_over
-            and top_overlay is None
-            and not game.has_pending_auto_action()
-        ):
-            preview_action = None
-
-            if game.phase == "drop" and hovered_cell is not None and preview_drop_enabled:
-                hx, hy = hovered_cell
-                preview_action = find_drop_action_by_cell(legal_actions, hx, hy)
-
-            elif game.phase == "eat" and hovered_cell is not None and preview_eat_enabled:
-                hx, hy = hovered_cell
-                preview_action = find_eat_action_by_cell(legal_actions, hx, hy)
-
-            elif game.phase == "muzzle" and hovered_cell is not None and preview_fire_enabled:
-                hx, hy = hovered_cell
-                muzzle_actions = find_muzzle_actions_by_endpoint(legal_actions, hx, hy)
-                if len(muzzle_actions) == 1:
-                    preview_action = muzzle_actions[0]
-
-            elif game.phase == "fire" and hovered_cell is not None and preview_fire_enabled:
-                hx, hy = hovered_cell
-                fire_actions = find_fire_actions_by_cell(legal_actions, hx, hy)
-                if len(fire_actions) == 1:
-                    preview_action = fire_actions[0]
-
-            if preview_action is not None:
-                try:
-                    preview_game = game.clone()
-                    ok, _ = preview_game.try_apply_action(preview_action)
-                    if ok:
-                        preview_board_data = preview_game.get_board_snapshot()
-                except Exception:
-                    preview_board_data = None
+        if app_mode == "game" and top_overlay is None:
+            preview_board_data = compute_preview_board_data(
+                game,
+                legal_actions,
+                hovered_cell,
+                preview_drop_enabled,
+                preview_eat_enabled,
+                preview_fire_enabled,
+            )
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -231,66 +225,30 @@ def run_app() -> None:
                             continue
 
                         if "menu_load_slot_1" in overlay_button_rects and overlay_button_rects["menu_load_slot_1"].collidepoint(mx, my):
-                            try:
-                                game = load_game_from_file(save_slot_files[1])
-                                app_mode = "game"
-                                menu_load_open = False
-                                settings_open = False
-                                settings_save_open = False
-                                settings_load_open = False
-                                record_open = False
-                                record_scroll = 0
-                                hovered_cell = None
-                                preview_board_data = None
-                                confirm_dialog = None
-                                confirm_action = None
-                                status_message = "已从槽位 1 载入对局。"
-                                status_is_error = False
-                            except Exception as e:
-                                status_message = f"读档失败：{e}"
-                                status_is_error = True
+                            loaded_game, message, is_error = load_game_from_slot(save_slot_files, 1)
+                            if loaded_game is not None:
+                                enter_game_with(loaded_game, message)
+                            else:
+                                status_message = message
+                                status_is_error = is_error
                             continue
 
                         if "menu_load_slot_2" in overlay_button_rects and overlay_button_rects["menu_load_slot_2"].collidepoint(mx, my):
-                            try:
-                                game = load_game_from_file(save_slot_files[2])
-                                app_mode = "game"
-                                menu_load_open = False
-                                settings_open = False
-                                settings_save_open = False
-                                settings_load_open = False
-                                record_open = False
-                                record_scroll = 0
-                                hovered_cell = None
-                                preview_board_data = None
-                                confirm_dialog = None
-                                confirm_action = None
-                                status_message = "已从槽位 2 载入对局。"
-                                status_is_error = False
-                            except Exception as e:
-                                status_message = f"读档失败：{e}"
-                                status_is_error = True
+                            loaded_game, message, is_error = load_game_from_slot(save_slot_files, 2)
+                            if loaded_game is not None:
+                                enter_game_with(loaded_game, message)
+                            else:
+                                status_message = message
+                                status_is_error = is_error
                             continue
 
                         if "menu_load_slot_3" in overlay_button_rects and overlay_button_rects["menu_load_slot_3"].collidepoint(mx, my):
-                            try:
-                                game = load_game_from_file(save_slot_files[3])
-                                app_mode = "game"
-                                menu_load_open = False
-                                settings_open = False
-                                settings_save_open = False
-                                settings_load_open = False
-                                record_open = False
-                                record_scroll = 0
-                                hovered_cell = None
-                                preview_board_data = None
-                                confirm_dialog = None
-                                confirm_action = None
-                                status_message = "已从槽位 3 载入对局。"
-                                status_is_error = False
-                            except Exception as e:
-                                status_message = f"读档失败：{e}"
-                                status_is_error = True
+                            loaded_game, message, is_error = load_game_from_slot(save_slot_files, 3)
+                            if loaded_game is not None:
+                                enter_game_with(loaded_game, message)
+                            else:
+                                status_message = message
+                                status_is_error = is_error
                             continue
 
                         if "menu_load_slot_cancel" in overlay_button_rects and overlay_button_rects["menu_load_slot_cancel"].collidepoint(mx, my):
@@ -300,20 +258,8 @@ def run_app() -> None:
                         continue
 
                     if "menu_start" in overlay_button_rects and overlay_button_rects["menu_start"].collidepoint(mx, my):
-                        game = Game()
-                        app_mode = "game"
-                        menu_load_open = False
-                        settings_open = False
-                        settings_save_open = False
-                        settings_load_open = False
-                        record_open = False
-                        record_scroll = 0
-                        hovered_cell = None
-                        preview_board_data = None
-                        confirm_dialog = None
-                        confirm_action = None
-                        status_message = "已开始新对局。"
-                        status_is_error = False
+                        new_game, message = start_new_game_session()
+                        enter_game_with(new_game, message)
                         continue
 
                     if "menu_load" in overlay_button_rects and overlay_button_rects["menu_load"].collidepoint(mx, my):
@@ -321,11 +267,7 @@ def run_app() -> None:
                         continue
 
                     if "menu_quit" in overlay_button_rects and overlay_button_rects["menu_quit"].collidepoint(mx, my):
-                        confirm_dialog = {
-                            "title": "确认退出",
-                            "message": "是否确认退出游戏？",
-                        }
-                        confirm_action = "quit"
+                        open_quit_confirm()
                         continue
 
                 continue
@@ -367,11 +309,7 @@ def run_app() -> None:
                 mx, my = window_to_logical(win_mx, win_my)
 
                 if quit_button_rect.collidepoint(mx, my):
-                    confirm_dialog = {
-                        "title": "确认退出",
-                        "message": "是否确认退出游戏？",
-                    }
-                    confirm_action = "quit"
+                    open_quit_confirm()
                     continue
                 top_overlay = get_top_overlay_name()
 
@@ -409,263 +347,206 @@ def run_app() -> None:
                         continue
 
                 if game.game_over:
-                    if "game_over_restart" in overlay_button_rects and overlay_button_rects["game_over_restart"].collidepoint(mx, my):
-                        game = Game()
-                        app_mode = "game"
-                        menu_load_open = False
-                        settings_open = False
-                        settings_save_open = False
-                        settings_load_open = False
-                        record_open = False
-                        record_scroll = 0
-                        hovered_cell = None
-                        preview_board_data = None
-                        confirm_dialog = None
-                        confirm_action = None
-                        status_message = "已重新开始对局。"
-                        status_is_error = False
-                        continue
+                    handled, action = handle_game_over_overlay_click(
+                        mx,
+                        my,
+                        overlay_button_rects,
+                    )
 
-                    if "game_over_load" in overlay_button_rects and overlay_button_rects["game_over_load"].collidepoint(mx, my):
-                        app_mode = "menu"
-                        menu_load_open = True
-                        record_open = False
-                        record_scroll = 0
-                        settings_open = False
-                        settings_save_open = False
-                        settings_load_open = False
-                        hovered_cell = None
-                        preview_board_data = None
-                        confirm_dialog = None
-                        confirm_action = None
-                        status_message = "请选择要载入的存档槽位。"
-                        status_is_error = False
-                        continue
+                    if handled:
+                        if action == "game_over_restart":
+                            enter_game_with(Game(), "已重新开始对局。")
+                            continue
 
-                    if "game_over_quit" in overlay_button_rects and overlay_button_rects["game_over_quit"].collidepoint(mx, my):
-                        confirm_dialog = {
-                            "title": "确认退出",
-                            "message": "是否确认退出游戏？",
-                        }
-                        confirm_action = "quit"
-                        continue
-
-                    if "game_over_export" in overlay_button_rects and overlay_button_rects["game_over_export"].collidepoint(mx, my):
-                        try:
-                            export_record_to_file(game, record_export_filename)
-                            status_message = f"已导出棋谱到 {record_export_filename}"
+                        if action == "game_over_load":
+                            app_mode = "menu"
+                            menu_load_open = True
+                            record_open = False
+                            record_scroll = 0
+                            settings_open = False
+                            settings_save_open = False
+                            settings_load_open = False
+                            hovered_cell = None
+                            preview_board_data = None
+                            confirm_dialog = None
+                            confirm_action = None
+                            status_message = "请选择要载入的存档槽位。"
                             status_is_error = False
-                        except Exception as e:
-                            status_message = f"导出失败：{e}"
-                            status_is_error = True
-                        continue
+                            continue
 
-                    # 终局后其它按钮全部失效
-                    continue
+                        if action == "game_over_export":
+                            try:
+                                export_record_to_file(game, record_export_filename)
+                                status_message = f"已导出棋谱到 {record_export_filename}"
+                                status_is_error = False
+                            except Exception as e:
+                                status_message = f"导出失败：{e}"
+                                status_is_error = True
+                            continue
+
+                        if action == "game_over_quit":
+                            open_quit_confirm()
+                            continue
+
+                        continue
 
                 if confirm_dialog is not None:
-                    if "cancel" in overlay_button_rects and overlay_button_rects["cancel"].collidepoint(mx, my):
-                        confirm_dialog = None
-                        confirm_action = None
-                        continue
+                    handled, action = handle_confirm_overlay_click(mx, my, overlay_button_rects, confirm_action)
 
-                    if "confirm" in overlay_button_rects and overlay_button_rects["confirm"].collidepoint(mx, my):
-                        if confirm_action == "endgame":
+                    if handled:
+                        if action == "close":
+                            confirm_dialog = None
+                            confirm_action = None
+                            continue
+
+                        if action == "endgame":
                             game.finish_by_agreement()
                             status_message = "已确认终局。"
                             status_is_error = False
-                        elif confirm_action == "resign":
+                            confirm_dialog = None
+                            confirm_action = None
+                            continue
+
+                        if action == "resign":
                             game.resign()
                             status_message = "已确认投降。"
                             status_is_error = False
-                        elif confirm_action == "quit":
+                            confirm_dialog = None
+                            confirm_action = None
+                            continue
+
+                        if action == "quit":
                             running = False
                             continue
 
-                        confirm_dialog = None
-                        confirm_action = None
                         continue
 
                 if settings_save_open:
-                    panel_rect = overlay_button_rects.get("save_slot_panel")
-                    if panel_rect is not None and not panel_rect.collidepoint(mx, my):
-                        settings_save_open = False
-                        continue
+                    handled, action = handle_slot_panel_click(mx, my, overlay_button_rects, "save_slot")
 
-                    if "save_slot_1" in overlay_button_rects and overlay_button_rects["save_slot_1"].collidepoint(mx, my):
-                        try:
-                            save_game_to_file(game, save_slot_files[1])
-                            status_message = "已保存到槽位 1"
-                            status_is_error = False
-                        except Exception as e:
-                            status_message = f"保存失败：{e}"
-                            status_is_error = True
-                        continue
+                    if handled:
+                        if action == "outside" or action == "cancel":
+                            settings_save_open = False
+                            continue
 
-                    if "save_slot_2" in overlay_button_rects and overlay_button_rects["save_slot_2"].collidepoint(mx, my):
-                        try:
-                            save_game_to_file(game, save_slot_files[2])
-                            status_message = "已保存到槽位 2"
-                            status_is_error = False
-                        except Exception as e:
-                            status_message = f"保存失败：{e}"
-                            status_is_error = True
-                        continue
+                        if action in {"1", "2", "3"}:
+                            slot = int(action)
+                            try:
+                                save_game_to_file(game, save_slot_files[slot])
+                                status_message = f"已保存到槽位 {slot}"
+                                status_is_error = False
+                            except Exception as e:
+                                status_message = f"保存失败：{e}"
+                                status_is_error = True
+                            continue
 
-                    if "save_slot_3" in overlay_button_rects and overlay_button_rects["save_slot_3"].collidepoint(mx, my):
-                        try:
-                            save_game_to_file(game, save_slot_files[3])
-                            status_message = "已保存到槽位 3"
-                            status_is_error = False
-                        except Exception as e:
-                            status_message = f"保存失败：{e}"
-                            status_is_error = True
                         continue
-
-                    if "save_slot_cancel" in overlay_button_rects and overlay_button_rects["save_slot_cancel"].collidepoint(mx, my):
-                        settings_save_open = False
-                        continue
-
-                    continue
 
                 if settings_load_open:
-                    panel_rect = overlay_button_rects.get("load_slot_panel")
-                    if panel_rect is not None and not panel_rect.collidepoint(mx, my):
-                        settings_load_open = False
-                        continue
+                    handled, action = handle_slot_panel_click(mx, my, overlay_button_rects, "load_slot")
 
-                    if "load_slot_1" in overlay_button_rects and overlay_button_rects["load_slot_1"].collidepoint(mx, my):
-                        try:
-                            game = load_game_from_file(save_slot_files[1])
-                            status_message = "已从槽位 1 读取存档"
-                            status_is_error = False
+                    if handled:
+                        if action == "outside" or action == "cancel":
                             settings_load_open = False
-                            settings_open = False
-                        except Exception as e:
-                            status_message = f"读档失败：{e}"
-                            status_is_error = True
-                        continue
+                            continue
 
-                    if "load_slot_2" in overlay_button_rects and overlay_button_rects["load_slot_2"].collidepoint(mx, my):
-                        try:
-                            game = load_game_from_file(save_slot_files[2])
-                            status_message = "已从槽位 2 读取存档"
-                            status_is_error = False
-                            settings_load_open = False
-                            settings_open = False
-                        except Exception as e:
-                            status_message = f"读档失败：{e}"
-                            status_is_error = True
-                        continue
+                        if action in {"1", "2", "3"}:
+                            slot = int(action)
+                            try:
+                                game = load_game_from_file(save_slot_files[slot])
+                                status_message = f"已从槽位 {slot} 读取存档"
+                                status_is_error = False
+                                settings_load_open = False
+                                settings_open = False
+                            except Exception as e:
+                                status_message = f"读档失败：{e}"
+                                status_is_error = True
+                            continue
 
-                    if "load_slot_3" in overlay_button_rects and overlay_button_rects["load_slot_3"].collidepoint(mx, my):
-                        try:
-                            game = load_game_from_file(save_slot_files[3])
-                            status_message = "已从槽位 3 读取存档"
-                            status_is_error = False
-                            settings_load_open = False
-                            settings_open = False
-                        except Exception as e:
-                            status_message = f"读档失败：{e}"
-                            status_is_error = True
                         continue
-
-                    if "load_slot_cancel" in overlay_button_rects and overlay_button_rects["load_slot_cancel"].collidepoint(mx, my):
-                        settings_load_open = False
-                        continue
-
-                    continue
 
                 if settings_open:
-                    panel_rect = overlay_button_rects.get("settings_panel")
-                    if panel_rect is not None and not panel_rect.collidepoint(mx, my):
-                        settings_open = False
-                        settings_save_open = False
-                        settings_load_open = False
+                    handled, action = handle_settings_panel_click(mx, my, overlay_button_rects)
+
+                    if handled:
+                        if action == "outside" or action == "close_settings":
+                            settings_open = False
+                            settings_save_open = False
+                            settings_load_open = False
+                            continue
+
+                        if action == "open_save_slots":
+                            settings_save_open = True
+                            settings_load_open = False
+                            continue
+
+                        if action == "open_load_slots":
+                            settings_load_open = True
+                            settings_save_open = False
+                            continue
+
+                        if action == "toggle_record":
+                            record_open = not record_open
+                            if not record_open:
+                                record_scroll = 0
+
+                            settings_open = False
+                            settings_save_open = False
+                            settings_load_open = False
+                            continue
+
+                        if action == "toggle_arrow_hint":
+                            arrow_hint_enabled = not arrow_hint_enabled
+                            continue
+
+                        if action == "toggle_preview_drop":
+                            preview_drop_enabled = not preview_drop_enabled
+                            continue
+
+                        if action == "toggle_preview_eat":
+                            preview_eat_enabled = not preview_eat_enabled
+                            continue
+
+                        if action == "toggle_preview_fire":
+                            preview_fire_enabled = not preview_fire_enabled
+                            continue
+
+                        if action == "export_record":
+                            try:
+                                export_record_to_file(game, record_export_filename)
+                                status_message = f"已导出棋谱到 {record_export_filename}"
+                                status_is_error = False
+                            except Exception as e:
+                                status_message = f"导出失败：{e}"
+                                status_is_error = True
+                            continue
+
+                        if action == "endgame":
+                            confirm_dialog = {
+                                "title": "确认终局",
+                                "message": "是否确认双方同意结束当前对局？\n系统将按当前局面计算胜负。",
+                            }
+                            confirm_action = "endgame"
+                            settings_open = False
+                            continue
+
+                        if action == "resign":
+                            confirm_dialog = {
+                                "title": "确认投降",
+                                "message": "是否确认当前行动方投降？\n确认后将直接判负。",
+                            }
+                            confirm_action = "resign"
+                            settings_open = False
+                            continue
+
+                        if action == "quit_game":
+                            open_quit_confirm()
+                            settings_open = False
+                            settings_save_open = False
+                            settings_load_open = False
+                            continue
+
                         continue
-
-                    if "open_save_slots" in overlay_button_rects and overlay_button_rects["open_save_slots"].collidepoint(mx, my):
-                        settings_save_open = True
-                        settings_load_open = False
-                        continue
-
-                    if "open_load_slots" in overlay_button_rects and overlay_button_rects["open_load_slots"].collidepoint(mx, my):
-                        settings_load_open = True
-                        settings_save_open = False
-                        continue
-
-                    if "toggle_record" in overlay_button_rects and overlay_button_rects["toggle_record"].collidepoint(mx, my):
-                        record_open = not record_open
-                        if not record_open:
-                            record_scroll = 0
-
-                        settings_open = False
-                        settings_save_open = False
-                        settings_load_open = False
-                        continue
-
-                    if "toggle_arrow_hint" in overlay_button_rects and overlay_button_rects["toggle_arrow_hint"].collidepoint(mx, my):
-                        arrow_hint_enabled = not arrow_hint_enabled
-                        continue
-
-                    if "toggle_preview_drop" in overlay_button_rects and overlay_button_rects["toggle_preview_drop"].collidepoint(mx, my):
-                        preview_drop_enabled = not preview_drop_enabled
-                        continue
-
-                    if "toggle_preview_eat" in overlay_button_rects and overlay_button_rects["toggle_preview_eat"].collidepoint(mx, my):
-                        preview_eat_enabled = not preview_eat_enabled
-                        continue
-
-                    if "toggle_preview_fire" in overlay_button_rects and overlay_button_rects["toggle_preview_fire"].collidepoint(mx, my):
-                        preview_fire_enabled = not preview_fire_enabled
-                        continue
-
-                    if "export_record" in overlay_button_rects and overlay_button_rects["export_record"].collidepoint(mx, my):
-                        try:
-                            export_record_to_file(game, record_export_filename)
-                            status_message = f"已导出棋谱到 {record_export_filename}"
-                            status_is_error = False
-                        except Exception as e:
-                            status_message = f"导出失败：{e}"
-                            status_is_error = True
-                        continue
-
-                    if "endgame" in overlay_button_rects and overlay_button_rects["endgame"].collidepoint(mx, my):
-                        confirm_dialog = {
-                            "title": "确认终局",
-                            "message": "是否确认双方同意结束当前对局？\n系统将按当前局面计算胜负。",
-                        }
-                        confirm_action = "endgame"
-                        settings_open = False
-                        continue
-
-                    if "resign" in overlay_button_rects and overlay_button_rects["resign"].collidepoint(mx, my):
-                        confirm_dialog = {
-                            "title": "确认投降",
-                            "message": "是否确认当前行动方投降？\n确认后将直接判负。",
-                        }
-                        confirm_action = "resign"
-                        settings_open = False
-                        continue
-
-                    if "close_settings" in overlay_button_rects and overlay_button_rects["close_settings"].collidepoint(mx, my):
-                        settings_open = False
-                        settings_save_open = False
-                        settings_load_open = False
-                        continue
-
-                    if "quit_game" in overlay_button_rects and overlay_button_rects["quit_game"].collidepoint(mx, my):
-                        confirm_dialog = {
-                            "title": "确认退出",
-                            "message": "是否确认退出游戏？",
-                        }
-                        confirm_action = "quit"
-                        settings_open = False
-                        settings_save_open = False
-                        settings_load_open = False
-                        continue
-
-                    continue
 
                 handled = False
                 for key, rect in system_button_rects.items():
@@ -732,136 +613,35 @@ def run_app() -> None:
                 board_pos = pixel_to_board(win_mx, win_my)
 
                 if record_open:
-                    panel_rect = overlay_button_rects.get("record_panel")
-                    if panel_rect is not None:
-                        if not panel_rect.collidepoint(mx, my):
+                    handled, new_scroll, should_close = handle_record_panel_click(
+                        mx,
+                        my,
+                        overlay_button_rects,
+                        record_scroll,
+                        len(game.history),
+                        6,
+                    )
+
+                    if handled:
+                        record_scroll = new_scroll
+                        if should_close:
                             record_open = False
-                            continue
-
-                        if "record_up" in overlay_button_rects and overlay_button_rects["record_up"].collidepoint(mx, my):
-                            record_scroll = max(0, record_scroll - 1)
-                            continue
-
-                        if "record_down" in overlay_button_rects and overlay_button_rects["record_down"].collidepoint(mx, my):
-                            total_pages = max(1, (len(game.history) + 6 - 1) // 6)
-                            record_scroll = min(total_pages - 1, record_scroll + 1)
-                            continue
-
                         continue
 
                 if game.has_pending_auto_action():
-                    pending = game.pending_auto_action
-                    if pending is not None:
-                        result = game.try_apply_action_with_snapshot(pending)
-                        if result["ok"]:
-                            standardized = game.action_to_command_text(pending)
-                            game.log_command(standardized)
-
-                            payload = result.get("result", {})
-                            status_message = f"操作成功：{payload.get('action_text', standardized)}"
-                            status_is_error = False
-                        else:
-                            status_message = f"操作失败：{result['message']}"
-                            status_is_error = True
-                    continue
+                    handled, message, is_error = handle_pending_auto_action_click(game)
+                    if handled:
+                        status_message = message
+                        status_is_error = is_error
+                        continue
 
                 if board_pos is not None:
                     x, y = board_pos
+                    handled, message, is_error = handle_board_phase_click(game, legal_actions, x, y)
 
-                    if game.phase == "drop":
-                        action = find_drop_action_by_cell(legal_actions, x, y)
-                        if action is None:
-                            status_message = f"({x}, {y}) 不是当前合法落子位置。"
-                            status_is_error = True
-                        else:
-                            result = game.try_apply_action_with_snapshot(action)
-                            if result["ok"]:
-                                standardized = game.action_to_command_text(action)
-                                game.log_command(standardized)
-
-                                payload = result.get("result", {})
-                                phase_info = payload.get("after", {}).get("phase_info", {})
-                                status_message = f"操作成功：{payload.get('action_text', standardized)}"
-                                status_is_error = False
-                            else:
-                                status_message = f"操作失败：{result['message']}"
-                                status_is_error = True
-
-                    elif game.phase == "eat":
-                        action = find_eat_action_by_cell(legal_actions, x, y)
-                        if action is None:
-                            status_message = f"({x}, {y}) 不是当前可吃目标。"
-                            status_is_error = True
-                        else:
-                            result = game.try_apply_action_with_snapshot(action)
-                            if result["ok"]:
-                                standardized = game.action_to_command_text(action)
-                                game.log_command(standardized)
-
-                                payload = result.get("result", {})
-                                status_message = f"操作成功：{payload.get('action_text', standardized)}"
-                                status_is_error = False
-                            else:
-                                status_message = f"操作失败：{result['message']}"
-                                status_is_error = True
-
-                    elif game.phase == "muzzle":
-                        muzzle_actions = find_muzzle_actions_by_endpoint(legal_actions, x, y)
-
-                        if len(muzzle_actions) == 0:
-                            status_message = f"({x}, {y}) 不是可选炮口端点。"
-                            status_is_error = True
-
-                        elif len(muzzle_actions) == 1:
-                            action = muzzle_actions[0]
-                            result = game.try_apply_action_with_snapshot(action)
-                            if result["ok"]:
-                                standardized = game.action_to_command_text(action)
-                                game.log_command(standardized)
-                                status_message = f"操作成功：{standardized}"
-                                status_is_error = False
-                            else:
-                                status_message = f"操作失败：{result['message']}"
-                                status_is_error = True
-
-                        else:
-                            status_message = f"({x}, {y}) 对应多个炮口方向，暂不自动选择。"
-                            status_is_error = True
-
-                    elif game.phase == "fire":
-                        fire_actions = find_fire_actions_by_cell(legal_actions, x, y)
-
-                        if len(fire_actions) == 0:
-                            status_message = f"({x}, {y}) 不属于当前可发射炮管。"
-                            status_is_error = True
-
-                        elif len(fire_actions) == 1:
-                            action = fire_actions[0]
-                            result = game.try_apply_action_with_snapshot(action)
-                            if result["ok"]:
-                                standardized = game.action_to_command_text(action)
-                                game.log_command(standardized)
-
-                                payload = result.get("result", {})
-                                status_message = f"操作成功：{payload.get('action_text', standardized)}"
-                                status_is_error = False
-                            else:
-                                status_message = f"操作失败：{result['message']}"
-                                status_is_error = True
-
-                        else:
-                            status_message = (
-                                f"({x}, {y}) 同时属于 {len(fire_actions)} 门可发射炮，"
-                                "暂不自动选择。"
-                            )
-                            status_is_error = True
-
-                    else:
-                        status_message = (
-                            f"当前阶段是 {game.phase_name()}。\n"
-                            "该阶段暂不支持直接点棋盘执行。"
-                        )
-                        status_is_error = True
+                    if handled:
+                        status_message = message
+                        status_is_error = is_error
 
         _unused_action_items, system_button_rects, overlay_button_rects = render_all(
             screen,

@@ -72,28 +72,16 @@
       },
       {
         "color": "B",
-        "level": 2,
-        "short": "B2"
-      },
-      {
-        "color": "B",
         "level": 1,
         "short": "B1"
       },
-      {
-        "color": "B",
-        "level": 1,
-        "short": "B1"
-      },
+      null,
+      null,
+      null,
       {
         "color": "R",
         "level": 1,
         "short": "R1"
-      },
-      {
-        "color": "R",
-        "level": 2,
-        "short": "R2"
       },
       {
         "color": "R",
@@ -177,8 +165,8 @@
     ]
   ],
   "phase": "drop",
-  "current_player": "R",
-  "turn_number": 13,
+  "current_player": "B",
+  "turn_number": 10,
   "round_drop_player": null,
   "chain_pass_count": 0,
   "game_over": false,
@@ -298,50 +286,6 @@
         "H"
       ],
       "mouth": "L"
-    },
-    {
-      "signature": [
-        "B",
-        1,
-        [
-          [
-            1,
-            5
-          ],
-          [
-            2,
-            5
-          ],
-          [
-            3,
-            5
-          ]
-        ],
-        "H"
-      ],
-      "mouth": "R"
-    },
-    {
-      "signature": [
-        "R",
-        1,
-        [
-          [
-            5,
-            5
-          ],
-          [
-            6,
-            5
-          ],
-          [
-            7,
-            5
-          ]
-        ],
-        "H"
-      ],
-      "mouth": "L"
     }
   ],
   "last_change_reached": [],
@@ -364,14 +308,7 @@
     "蓝方在(2, 5)落子",
     "红方在(7, 5)落子",
     "红方形成R1级3长炮(横向, 炮口:左) [(7, 5), (8, 5), (9, 5)]",
-    "红方打了R1级3长炮(横向, 炮口:左) [(7, 5), (8, 5), (9, 5)]",
-    "蓝方在(3, 5)落子",
-    "蓝方形成B1级3长炮(横向, 炮口:右) [(1, 5), (2, 5), (3, 5)]",
-    "蓝方打了B1级3长炮(横向, 炮口:右) [(1, 5), (2, 5), (3, 5)]",
-    "红方在(5, 5)落子",
-    "红方形成R1级3长炮(横向, 炮口:左) [(5, 5), (6, 5), (7, 5)]",
-    "红方打了R1级3长炮(横向, 炮口:左) [(5, 5), (6, 5), (7, 5)]",
-    "蓝方在(4, 5)落子"
+    "红方打了R1级3长炮(横向, 炮口:左) [(7, 5), (8, 5), (9, 5)]"
   ],
   "debug_log": [
     "红方: 新炮 ((9, 7), (9, 8), (9, 9)) 自动判定炮口为 U",
@@ -383,11 +320,7 @@
     "蓝方: 新炮 ((1, 3), (1, 4), (1, 5)) 自动判定炮口为 D",
     "炮管集合更新: 新炮 ((1, 3), (1, 4), (1, 5)) 加入当前炮管集合",
     "红方: 新炮 ((7, 5), (8, 5), (9, 5)) 自动判定炮口为 L",
-    "炮管集合更新: 新炮 ((7, 5), (8, 5), (9, 5)) 加入当前炮管集合",
-    "蓝方: 新炮 ((1, 5), (2, 5), (3, 5)) 自动判定炮口为 R",
-    "炮管集合更新: 新炮 ((1, 5), (2, 5), (3, 5)) 加入当前炮管集合",
-    "红方: 新炮 ((5, 5), (6, 5), (7, 5)) 自动判定炮口为 L",
-    "炮管集合更新: 新炮 ((5, 5), (6, 5), (7, 5)) 加入当前炮管集合"
+    "炮管集合更新: 新炮 ((7, 5), (8, 5), (9, 5)) 加入当前炮管集合"
   ],
   "command_log": [
     "move 9 8",
@@ -403,27 +336,100 @@
     "move 8 5",
     "move 2 5",
     "move 7 5",
-    "fire 1",
-    "move 3 5",
-    "fire 1",
-    "move 5 5",
-    "fire 1",
-    "move 4 5"
+    "fire 1"
   ],
   "last_fire_report_lines": [],
   "auto_action_messages": [],
   "last_action_events": [
     {
+      "type": "fire",
+      "index": 1,
+      "cannon": {
+        "color": "R",
+        "level": 1,
+        "length": 3,
+        "direction": "H",
+        "mouth": "L",
+        "positions": [
+          {
+            "x": 7,
+            "y": 5
+          },
+          {
+            "x": 8,
+            "y": 5
+          },
+          {
+            "x": 9,
+            "y": 5
+          }
+        ],
+        "signature": [
+          "R",
+          1,
+          [
+            [
+              7,
+              5
+            ],
+            [
+              8,
+              5
+            ],
+            [
+              9,
+              5
+            ]
+          ],
+          "H"
+        ],
+        "short": "R1级3长炮(横向, 炮口:左) [(7, 5), (8, 5), (9, 5)]",
+        "record_text": "R1级3长炮(横向, 炮口:左) [(7, 5), (8, 5), (9, 5)]"
+      },
+      "player": "R"
+    },
+    {
       "type": "piece_change",
-      "x": 4,
+      "x": 6,
       "y": 5,
       "before": null,
       "after": {
-        "color": "B",
+        "color": "R",
         "level": 1,
-        "short": "B1"
+        "short": "R1"
       },
-      "reason": "place"
+      "reason": "front_attack"
+    },
+    {
+      "type": "piece_change",
+      "x": 8,
+      "y": 5,
+      "before": {
+        "color": "R",
+        "level": 1,
+        "short": "R1"
+      },
+      "after": {
+        "color": "R",
+        "level": 2,
+        "short": "R2"
+      },
+      "reason": "body_upgrade"
+    },
+    {
+      "type": "phase_change",
+      "phase": "eat",
+      "phase_name": "吃子阶段",
+      "current_player": "R",
+      "current_player_name": "红方"
+    },
+    {
+      "type": "auto_action",
+      "action_type": "switch_resolution_side",
+      "reason": "current_side_cannot_continue",
+      "from_player": "R",
+      "to_player": "B",
+      "to_player_name": "蓝方"
     },
     {
       "type": "phase_change",
@@ -434,30 +440,15 @@
     },
     {
       "type": "auto_action",
-      "action_type": "switch_resolution_side",
-      "reason": "current_side_cannot_continue",
-      "from_player": "B",
-      "to_player": "R",
-      "to_player_name": "红方"
-    },
-    {
-      "type": "phase_change",
-      "phase": "fire",
-      "phase_name": "打炮阶段",
-      "current_player": "R",
-      "current_player_name": "红方"
-    },
-    {
-      "type": "auto_action",
       "action_type": "finish_full_round",
       "reason": "both_sides_cannot_continue"
     },
     {
       "type": "turn_change",
       "reason": "full_round_finished",
-      "current_player": "R",
-      "current_player_name": "红方",
-      "turn_number": 13,
+      "current_player": "B",
+      "current_player_name": "蓝方",
+      "turn_number": 10,
       "phase": "drop",
       "phase_name": "落子阶段"
     },
@@ -465,8 +456,8 @@
       "type": "phase_change",
       "phase": "drop",
       "phase_name": "落子阶段",
-      "current_player": "R",
-      "current_player_name": "红方"
+      "current_player": "B",
+      "current_player_name": "蓝方"
     }
   ]
 }

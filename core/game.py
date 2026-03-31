@@ -24,8 +24,6 @@ from core.resolution import (
 from core.record import (
     player_name,
     format_pos,
-    mouth_text,
-    cannon_direction_text,
     format_cannon_for_record,
     format_cannon_with_mouth_for_record,
     piece_text,
@@ -63,7 +61,68 @@ from core.events import (
     record_phase_change_event,
     record_turn_change_event,
 )
-
+from core.game_legal import (
+    action_label_impl,
+    action_with_label_impl,
+    action_to_command_text_impl,
+    legal_action_command_texts_impl,
+    get_legal_drop_actions_impl,
+    get_legal_muzzle_actions_impl,
+    get_legal_fire_actions_impl,
+    get_legal_eat_actions_impl,
+    get_legal_actions_impl,
+    get_legal_actions_snapshot_impl,
+    get_action_api_snapshot_impl,
+    has_single_legal_action_impl,
+    get_single_legal_action_impl,
+    is_action_legal_impl,
+    actions_equal_for_execution_impl,
+)
+from core.game_flow import (
+    start_resolution_for_current_player_impl,
+    has_pending_muzzle_choice_impl,
+    all_legal_moves_impl,
+    can_player_move_impl,
+    check_game_over_at_turn_start_impl,
+    end_turn_impl,
+    finish_full_round_impl,
+    advance_turn_impl,
+    calculate_score_impl,
+    determine_winner_by_score_impl,
+    finish_game_impl,
+    finish_by_agreement_impl,
+    resign_impl,
+)
+from core.game_actions import (
+    apply_move_action_impl,
+    apply_move_at_impl,
+    apply_muzzle_choice_impl,
+    apply_fire_choice_impl,
+    apply_eat_choice_impl,
+    apply_muzzle_action_impl,
+    apply_fire_action_impl,
+    apply_eat_action_impl,
+    dispatch_action_impl,
+    apply_action_impl,
+    try_apply_action_impl,
+    apply_action_with_snapshot_impl,
+    try_apply_action_with_snapshot_impl,
+    apply_single_legal_action_impl,
+)
+from core.game_cannon import (
+    remove_contained_old_cannons_impl,
+    get_all_cannons_impl,
+    apply_saved_mouth_to_cannon_impl,
+    initialize_fire_cannon_pool_impl,
+    get_cannons_by_color_impl,
+    assign_muzzles_for_new_cannons_impl,
+    add_waiting_new_cannons_to_pool_impl,
+    set_cannon_mouth_impl,
+    all_pending_muzzles_set_impl,
+    clear_pending_muzzles_impl,
+    get_phase_relevant_cannons_impl,
+    get_fireable_cannons_impl,
+)
 class Game:
     def __init__(self) -> None:
         self.board = Board()
@@ -318,420 +377,77 @@ class Game:
     def get_last_action_events(self) -> list[dict[str, Any]]:
         return get_last_action_events(self)
 
+    #from game_legal.py
     def _action_label(self, action: dict[str, Any]) -> str:
-        action_type = action["type"]
-
-        if action_type == "move":
-            x = action["x"]
-            y = action["y"]
-            if action["mode"] == "place":
-                return f"move {x} {y} [放置]"
-            return f"move {x} {y} [升级到{action['to_level']}级]"
-
-        if action_type == "muzzle":
-            return f"cannon {action['index']} {action['direction']}"
-
-        if action_type == "fire":
-            return f"fire {action['index']}"
-
-        if action_type == "eat":
-            return f"eat {action['index']}"
-
-        return str(action)
-
+        return action_label_impl(self, action)
     def _action_with_label(self, action: dict[str, Any]) -> dict[str, Any]:
-        result = action.copy()
-        result["label"] = self._action_label(action)
-        return result
-
+        return action_with_label_impl(self, action)
     def action_to_command_text(self, action: dict[str, Any]) -> str:
-        action_type = action["type"]
-
-        if action_type == "move":
-            return f"move {action['x']} {action['y']}"
-
-        if action_type == "muzzle":
-            return f"cannon {action['index']} {action['direction']}"
-
-        if action_type == "fire":
-            return f"fire {action['index']}"
-
-        if action_type == "eat":
-            return f"eat {action['index']}"
-
-        raise ValueError(f"未知动作类型：{action_type}")
-    
+        return action_to_command_text_impl(self, action)
     def legal_action_command_texts(self) -> list[str]:
-        return [
-            self.action_to_command_text(action)
-            for action in self.get_legal_actions()
-        ]
-
+        return legal_action_command_texts_impl(self)
     def get_legal_drop_actions(self) -> list[dict[str, Any]]:
-        actions: list[dict[str, Any]] = []
-
-        for x, y in self.board.legal_place_positions(self.current_player):
-            actions.append(
-                self._action_with_label(
-                    {
-                        "type": "move",
-                        "mode": "place",
-                        "x": x,
-                        "y": y,
-                        "player": self.current_player,
-                        "phase": "drop",
-                    }
-                )
-            )
-
-        for x, y in self.board.legal_upgrade_positions(self.current_player):
-            piece = self.board.get(x, y)
-            if piece is None:
-                continue
-
-            actions.append(
-                self._action_with_label(
-                    {
-                        "type": "move",
-                        "mode": "upgrade",
-                        "x": x,
-                        "y": y,
-                        "to_level": piece.level + 1,
-                        "player": self.current_player,
-                        "phase": "drop",
-                    }
-                )
-            )
-
-        return actions
-    
+        return get_legal_drop_actions_impl(self)
     def get_legal_muzzle_actions(self) -> list[dict[str, Any]]:
-        actions: list[dict[str, Any]] = []
-
-        for i, cannon in enumerate(self.pending_muzzle_cannons, start=1):
-            if cannon.direction == "H":
-                directions = ["left", "right"]
-            else:
-                directions = ["up", "down"]
-
-            for direction in directions:
-                actions.append(
-                    self._action_with_label(
-                        {
-                            "type": "muzzle",
-                            "index": i,
-                            "direction": direction,
-                            "player": self.current_player,
-                            "phase": "muzzle",
-                            "cannon": self._serialize_cannon(cannon),
-                        }
-                    )
-                )
-
-        return actions
-    
+        return get_legal_muzzle_actions_impl(self)
     def get_legal_fire_actions(self) -> list[dict[str, Any]]:
-        actions: list[dict[str, Any]] = []
-
-        for i, cannon in enumerate(self.get_fireable_cannons(), start=1):
-            actions.append(
-                self._action_with_label(
-                    {
-                        "type": "fire",
-                        "index": i,
-                        "player": self.current_player,
-                        "phase": "fire",
-                        "cannon": self._serialize_cannon(cannon),
-                    }
-                )
-            )
-
-        return actions
-    
+        return get_legal_fire_actions_impl(self)
     def get_legal_eat_actions(self) -> list[dict[str, Any]]:
-        actions: list[dict[str, Any]] = []
-        targets = self.get_capturable_targets(self.current_player)
-
-        for i, (x, y) in enumerate(targets, start=1):
-            actions.append(
-                self._action_with_label(
-                    {
-                        "type": "eat",
-                        "index": i,
-                        "x": x,
-                        "y": y,
-                        "player": self.current_player,
-                        "phase": "eat",
-                        "target_piece": self._serialize_piece_at(x, y),
-                    }
-                )
-            )
-
-        return actions
-    
+        return get_legal_eat_actions_impl(self)
     def get_legal_actions(self) -> list[dict[str, Any]]:
-        if self.game_over:
-            return []
-
-        if self.phase == "drop":
-            return self.get_legal_drop_actions()
-
-        if self.phase == "muzzle":
-            return self.get_legal_muzzle_actions()
-
-        if self.phase == "fire":
-            return self.get_legal_fire_actions()
-
-        if self.phase == "eat":
-            return self.get_legal_eat_actions()
-
-        return []
-
+        return get_legal_actions_impl(self)
     def get_legal_actions_snapshot(self) -> dict[str, Any]:
-        actions = self.get_legal_actions()
-        single_action = actions[0] if len(actions) == 1 else None
-
-        return {
-            "phase": self.phase,
-            "current_player": self.current_player,
-            "count": len(actions),
-            "has_single_action": len(actions) == 1,
-            "single_action": single_action,
-            "actions": actions,
-        }
-
+        return get_legal_actions_snapshot_impl(self)
     def get_action_api_snapshot(self) -> dict[str, Any]:
-        return {
-            "supports_structured_actions": True,
-            "supports_apply_action": True,
-            "supports_try_apply_action": True,
-            "supports_apply_action_with_snapshot": True,
-            "supports_try_apply_action_with_snapshot": True,
-            "legal_action_count": len(self.get_legal_actions()),
-            "has_single_legal_action": self.has_single_legal_action(),
-            "single_legal_action": self.get_single_legal_action(),
-            "supports_structured_events": True,
-            "supports_auto_resolution_events": True,
-            "supports_state_export": True,
-            "supports_state_import": True,
-        }
-
+        return get_action_api_snapshot_impl(self)
     def has_single_legal_action(self) -> bool:
-        return len(self.get_legal_actions()) == 1
-
+        return has_single_legal_action_impl(self)
     def get_single_legal_action(self) -> dict[str, Any] | None:
-        actions = self.get_legal_actions()
-        if len(actions) != 1:
-            return None
-        return actions[0]
-    
+        return get_single_legal_action_impl(self)
     def is_action_legal(self, action: dict[str, Any]) -> bool:
-        legal_actions = self.get_legal_actions()
-
-        for legal_action in legal_actions:
-            if self._actions_equal_for_execution(action, legal_action):
-                return True
-
-        return False
-
+        return is_action_legal_impl(self, action)
     def _actions_equal_for_execution(
         self,
         action1: dict[str, Any],
         action2: dict[str, Any],
     ) -> bool:
-        keys_by_type = {
-            "move": ["type", "mode", "x", "y"],
-            "muzzle": ["type", "index", "direction"],
-            "fire": ["type", "index"],
-            "eat": ["type", "index"],
-        }
+        return actions_equal_for_execution_impl(self, action1, action2)
 
-        action_type_1 = action1.get("type")
-        action_type_2 = action2.get("type")
-
-        if action_type_1 != action_type_2:
-            return False
-
-        keys = keys_by_type.get(action_type_1)
-        if keys is None:
-            return False
-
-        for key in keys:
-            if action1.get(key) != action2.get(key):
-                return False
-
-        return True
-    
+    #from game_actions.py
     def _apply_move_action(self, action: dict[str, Any]) -> None:
-        x = action["x"]
-        y = action["y"]
-        self.apply_move_at(x, y)
-
-    def apply_move_at(self, x: int, y: int) -> None:
-        if self.phase != "drop":
-            raise ValueError("当前阶段不是落子阶段，无法执行该操作。")
-
-        if not self.board.in_bounds(x, y):
-            raise ValueError("坐标越界。")
-
-        before_piece = self._serialize_piece_at(x, y)
-
-        self.push_undo_snapshot()
-        self.clear_last_change_reached()
-        self.clear_last_action_events()
-
-        # 记录这次大回合的落子发起方
-        self.round_drop_player = self.current_player
-        self.chain_pass_count = 0
-
-        before_cannons = self.get_cannons_by_color(self.current_player)
-        self.apply_move(x, y)
-        after_piece = self._serialize_piece_at(x, y)
-        after_cannons = self.get_cannons_by_color(self.current_player)
-
-        move_reason = "place" if before_piece is None else "upgrade"
-        self.add_last_action_event(
-            self._make_piece_change_event(
-                x=x,
-                y=y,
-                before_piece=before_piece,
-                after_piece=after_piece,
-                reason=move_reason,
-            )
-        )
-
-        self.last_new_cannons = detect_new_cannons(before_cannons, after_cannons)
-        self.assign_muzzles_for_new_cannons()
-
-        for cannon in self.last_new_cannons:
-            self.add_last_action_event(
-                self._make_event(
-                    "new_cannon",
-                    cannon=self._serialize_cannon(cannon),
-                )
-            )
-
-        self.waiting_new_pool_cannons = self.last_new_cannons.copy()
-
-        if self.pending_muzzle_cannons:
-            self.phase = "muzzle"
-            self._record_phase_change_event()
-        else:
-            self.add_waiting_new_cannons_to_pool()
-            self.phase = "fire"
-            self._record_phase_change_event()
-
-        self.advance_turn()
-
-    def apply_muzzle_choice(self, index: int, direction: str) -> None:
-        self.set_cannon_mouth(index, direction)
-
-    def apply_fire_choice(self, index: int) -> None:
-        self.fire_cannon_by_index(index)
-
-    def apply_eat_choice(self, index: int) -> None:
-        self.eat_target_by_index(index)
-
+        return apply_move_action_impl(self, action)
     def _apply_muzzle_action(self, action: dict[str, Any]) -> None:
-        index = action["index"]
-        direction = action["direction"]
-        self.apply_muzzle_choice(index, direction)
-
+        return apply_muzzle_action_impl(self, action)
     def _apply_fire_action(self, action: dict[str, Any]) -> None:
-        index = action["index"]
-        self.apply_fire_choice(index)
-
+        return apply_fire_action_impl(self, action)
     def _apply_eat_action(self, action: dict[str, Any]) -> None:
-        index = action["index"]
-        self.apply_eat_choice(index)
-
+        return apply_eat_action_impl(self, action)
+    def apply_move_at(self, x: int, y: int) -> None:
+        return apply_move_at_impl(self, x, y)
+    def apply_muzzle_choice(self, index: int, direction: str) -> None:
+        return apply_muzzle_choice_impl(self, index, direction)
+    def apply_fire_choice(self, index: int) -> None:
+        return apply_fire_choice_impl(self, index)
+    def apply_eat_choice(self, index: int) -> None:
+        return apply_eat_choice_impl(self, index)
     def _dispatch_action(self, action: dict[str, Any]) -> None:
-        action_type = action["type"]
-
-        if action_type == "move":
-            self._apply_move_action(action)
-            return
-
-        if action_type == "muzzle":
-            self._apply_muzzle_action(action)
-            return
-
-        if action_type == "fire":
-            self._apply_fire_action(action)
-            return
-
-        if action_type == "eat":
-            self._apply_eat_action(action)
-            return
-
-        raise ValueError(f"未知动作类型：{action_type}")
-
+        return dispatch_action_impl(self, action)
     def apply_action(self, action: dict[str, Any]) -> None:
-        if self.game_over:
-            raise ValueError("游戏已结束，不能继续操作。")
-
-        if not isinstance(action, dict):
-            raise ValueError("action 必须是字典。")
-
-        action_type = action.get("type")
-        if action_type is None:
-            raise ValueError("action 缺少 type 字段。")
-
-        if not self.is_action_legal(action):
-            raise ValueError(f"非法动作：{action}")
-
-        self.clear_pending_auto_action()
-        self._dispatch_action(action)
-    
+        return apply_action_impl(self, action)
     def try_apply_action(self, action: dict[str, Any]) -> tuple[bool, str]:
-        try:
-            self.apply_action(action)
-            return True, "ok"
-        except Exception as e:
-            return False, str(e)
-
+        return try_apply_action_impl(self, action)
     def apply_action_with_snapshot(
         self,
         action: dict[str, Any],
     ) -> dict[str, Any]:
-        before = self.get_state_snapshot()
-        self.apply_action(action)
-        after = self.get_state_snapshot()
-
-        return {
-            "action": action,
-            "action_text": self.action_to_command_text(action),
-            "events": self.get_last_action_events(),
-            "auto_action_messages": self.auto_action_messages.copy(),
-            "before": before,
-            "after": after,
-        }
-    
+        return apply_action_with_snapshot_impl(self, action)
     def try_apply_action_with_snapshot(
         self,
         action: dict[str, Any],
     ) -> dict[str, Any]:
-        try:
-            result = self.apply_action_with_snapshot(action)
-            return {
-                "ok": True,
-                "message": "ok",
-                "result": result,
-            }
-        except Exception as e:
-            return {
-                "ok": False,
-                "message": str(e),
-                "result": None,
-            }
-
+        return try_apply_action_with_snapshot_impl(self, action)
     def apply_single_legal_action(self) -> dict[str, Any]:
-        action = self.get_single_legal_action()
-        if action is None:
-            raise ValueError("当前不是唯一合法动作，无法自动执行。")
-
-        self.apply_action(action)
-        return action
+        return apply_single_legal_action_impl(self)
 
     def history_text(self) -> str:
         from core.record import history_text
@@ -754,68 +470,17 @@ class Game:
         self.auto_action_messages.clear()
         return messages
     
-    #扫描这一方当前所有炮，已有炮口的直接进 fire_cannon_pool
-    #没有炮口的尝试自动判，自动判不了的进 pending_muzzle_cannons
-    #然后进入 muzzle 或 fire
+    #from game_flow.py
     def start_resolution_for_current_player(self) -> None:
-        self.fire_cannon_pool = []
-        self.pending_muzzle_cannons = []
-        self.waiting_new_pool_cannons = []
-
-        cannons = self.get_cannons_by_color(self.current_player)
-
-        for cannon in cannons:
-            if cannon.mouth is None:
-                mouth = auto_determine_mouth(cannon, self.last_change_reached)
-                if mouth is None:
-                    self.pending_muzzle_cannons.append(cannon)
-                    self.waiting_new_pool_cannons.append(cannon)
-                else:
-                    cannon.mouth = mouth
-                    self.cannon_mouth_map[cannon_signature(cannon)] = mouth
-
-            if cannon.mouth is not None:
-                self.fire_cannon_pool.append(cannon)
-
-        if self.pending_muzzle_cannons:
-            self.phase = "muzzle"
-        else:
-            self.phase = "fire"
-
-        self._record_phase_change_event()
-
+        return start_resolution_for_current_player_impl(self)
     def has_pending_muzzle_choice(self) -> bool:
-        return bool(self.pending_muzzle_cannons)
-
+        return has_pending_muzzle_choice_impl(self)
     def all_legal_moves(self, color: str) -> List[str]:
-        moves: List[str] = []
-
-        for x, y in self.board.legal_place_positions(color):
-            moves.append(f"move {x} {y}   [放置]")
-
-        for x, y in self.board.legal_upgrade_positions(color):
-            piece = self.board.get(x, y)
-            if piece is not None:
-                moves.append(f"move {x} {y}   [升级到{piece.level + 1}级]")
-
-        return moves
-
+        return all_legal_moves_impl(self, color)
     def can_player_move(self, color: str) -> bool:
-        return bool(self.board.legal_place_positions(color) or self.board.legal_upgrade_positions(color))
-
-    # 游戏结束检查：当前阶段是落子阶段，且当前玩家无任何合法落子/升级位置
+        return can_player_move_impl(self, color)
     def check_game_over_at_turn_start(self) -> bool:
-        if self.phase != "drop":
-            return False
-
-        if self.game_over:
-            return True
-
-        if not self.can_player_move(self.current_player):
-            self.finish_game(reason="no_legal_move", winner=None)
-            return True
-
-        return False
+        return check_game_over_at_turn_start_impl(self)
 
     def apply_place(self, x: int, y: int) -> None:
         color = self.current_player
@@ -873,154 +538,31 @@ class Game:
 
         raise ValueError("该位置已有己方3级及以上棋子，落子阶段不能继续升级。")
 
+    #from game_cannon.py
     def remove_contained_old_cannons(self, new_cannon: Cannon) -> None:
-        remaining: List[Cannon] = []
-
-        for old_cannon in self.fire_cannon_pool:
-            if cannon_contains(new_cannon, old_cannon):
-                self.debug(
-                    f"炮管集合更新: 新炮 {new_cannon.positions} 包含旧炮 {old_cannon.positions}，旧炮移出集合"
-                )
-            else:
-                remaining.append(old_cannon)
-
-        self.fire_cannon_pool = remaining
-
+        return remove_contained_old_cannons_impl(self, new_cannon)
     def get_all_cannons(self) -> List[Cannon]:
-        cannons = find_all_cannons(self.board)
-
-        for cannon in cannons:
-            self._apply_saved_mouth_to_cannon(cannon)
-
-        return cannons
-
+        return get_all_cannons_impl(self)
     def _apply_saved_mouth_to_cannon(self, cannon: Cannon) -> Cannon:
-        sig = cannon_signature(cannon)
-
-        if sig in self.cannon_mouth_map:
-            cannon.mouth = self.cannon_mouth_map[sig]
-            return cannon
-
-        for pending in self.pending_muzzle_cannons:
-            if cannon_signature(pending) == sig and pending.mouth is not None:
-                cannon.mouth = pending.mouth
-                return cannon
-
-        return cannon
-    
-    # 旧版初始化函数，当前版本暂未使用
+        return apply_saved_mouth_to_cannon_impl(self, cannon)
     def initialize_fire_cannon_pool(self) -> None:
-        self.fire_cannon_pool = []
-
-        for cannon in self.get_cannons_by_color(self.current_player):
-            if cannon.mouth is not None:
-                self.fire_cannon_pool.append(cannon)
-
+        return initialize_fire_cannon_pool_impl(self)
     def get_cannons_by_color(self, color: str) -> List[Cannon]:
-        return [c for c in self.get_all_cannons() if c.color == color]
-
+        return get_cannons_by_color_impl(self, color)
     def assign_muzzles_for_new_cannons(self) -> None:
-        self.pending_muzzle_cannons = []
-        auto_resolved_cannons: List[Cannon] = []
-
-        for cannon in self.last_new_cannons:
-            mouth = auto_determine_mouth(cannon, self.last_change_reached)
-
-            if mouth is None:
-                self.pending_muzzle_cannons.append(cannon)
-            else:
-                cannon.mouth = mouth
-                self.cannon_mouth_map[cannon_signature(cannon)] = mouth
-                auto_resolved_cannons.append(cannon)
-
-                self.debug(
-                    f"{player_name(cannon.color)}: 新炮 {cannon.positions} 自动判定炮口为 {mouth}"
-                )
-
-        # 自动判口成功的新炮，立即作为“形成某炮”记入正式棋谱
-        self.record_new_cannons(auto_resolved_cannons)
-
+        return assign_muzzles_for_new_cannons_impl(self)
     def add_waiting_new_cannons_to_pool(self) -> None:
-        if not self.waiting_new_pool_cannons:
-            return
-
-        for cannon in self.waiting_new_pool_cannons:
-            self._apply_saved_mouth_to_cannon(cannon)
-
-            # 先移除被新炮完全包含的旧炮
-            self.remove_contained_old_cannons(cannon)
-
-            sig = cannon_signature(cannon)
-            exists = any(cannon_signature(old) == sig for old in self.fire_cannon_pool)
-
-            if not exists:
-                self.fire_cannon_pool.append(cannon)
-                self.debug(
-                    f"炮管集合更新: 新炮 {cannon.positions} 加入当前炮管集合"
-                )
-
-        self.waiting_new_pool_cannons = []
-
+        return add_waiting_new_cannons_to_pool_impl(self)
     def set_cannon_mouth(self, index: int, direction_text: str) -> None:
-        if not (1 <= index <= len(self.pending_muzzle_cannons)):
-            raise ValueError("新炮编号无效。")
-
-        cannon = self.pending_muzzle_cannons[index - 1]
-        text = direction_text.lower()
-
-        if cannon.direction == "H":
-            if text == "left":
-                mouth = "L"
-            elif text == "right":
-                mouth = "R"
-            else:
-                raise ValueError("横向炮只能选择 left 或 right。")
-        else:
-            if text == "up":
-                mouth = "U"
-            elif text == "down":
-                mouth = "D"
-            else:
-                raise ValueError("纵向炮只能选择 up 或 down。")
-
-        self.push_undo_snapshot()
-        self.clear_last_action_events()
-        cannon.mouth = mouth
-        self.cannon_mouth_map[cannon_signature(cannon)] = mouth
-        self.add_last_action_event(
-            self._make_event(
-                "muzzle_set",
-                index=index,
-                direction=direction_text.lower(),
-                cannon=self._serialize_cannon(cannon),
-            )
-        )
-
-        # 关键：顺手把 last_new_cannons 里对应对象也同步一下
-        for new_cannon in self.last_new_cannons:
-            if cannon_signature(new_cannon) == cannon_signature(cannon):
-                new_cannon.mouth = mouth
-
-        self.debug(
-            f"{player_name(cannon.color)}: 为新炮 {cannon.positions} 指定炮口方向 {direction_text}"
-        )
-
-        self.record_new_cannons(
-            [cannon],
-            manual_signature_to_mouth={cannon_signature(cannon): mouth},
-        )
-        if self.all_pending_muzzles_set():
-            self.add_waiting_new_cannons_to_pool()
-            self.clear_pending_muzzles()
-            self.phase = "fire"
-            self._record_phase_change_event()
-            self.advance_turn()
-
+        return set_cannon_mouth_impl(self, index, direction_text)
     def all_pending_muzzles_set(self) -> bool:
-        return all(c.mouth is not None for c in self.pending_muzzle_cannons)
-
+        return all_pending_muzzles_set_impl(self)
     def clear_pending_muzzles(self) -> None:
-        self.pending_muzzle_cannons = []
+        return clear_pending_muzzles_impl(self)
+    def get_phase_relevant_cannons(self) -> List[Cannon]:
+        return get_phase_relevant_cannons_impl(self)
+    def get_fireable_cannons(self) -> List[Cannon]:
+        return get_fireable_cannons_impl(self)
 
     def apply_command(self, command: str) -> None:
         if self.phase != "drop":
@@ -1041,12 +583,6 @@ class Game:
             raise ValueError("x 和 y 必须是整数。") from exc
 
         self.apply_move_at(x, y)
-
-    def get_phase_relevant_cannons(self) -> List[Cannon]:
-        return self.get_cannons_by_color(self.current_player)
-
-    def get_fireable_cannons(self) -> List[Cannon]:
-        return self.fire_cannon_pool.copy()
 
     def get_local_region(self, x: int, y: int) -> List[Position]:
         region: List[Position] = []
@@ -1236,19 +772,6 @@ class Game:
 
         self.advance_turn()
 
-    def end_turn(self) -> None:
-        self.current_player = self.opponent(self.current_player)
-        self.turn_number += 1
-
-        self.clear_pending_auto_action()
-        self.phase = "drop"
-        self.pending_muzzle_cannons = []
-        self.last_new_cannons = []
-        self.fire_cannon_pool = []
-        self.waiting_new_pool_cannons = []
-        self.last_change_reached = {}
-        self.last_fire_report_lines = []
-
     def status_text(self) -> str:
         color = self.current_player
         place_count = len(self.board.legal_place_positions(color))
@@ -1371,163 +894,27 @@ class Game:
 
         self.advance_turn()
 
-    # 进阶函数：直接结束当前回合，进入下一回合的落子阶段。通常在当前回合的打炮/吃子阶段无法继续时调用。
+    #from game_flow.py
+    def end_turn(self) -> None:
+        return end_turn_impl(self)
     def finish_full_round(self) -> None:
-        next_drop_player = (
-            self.opponent(self.round_drop_player)
-            if self.round_drop_player is not None
-            else self.opponent(self.current_player)
-        )
-
-        self.current_player = next_drop_player
-        self.turn_number += 1
-
-        self.phase = "drop"
-        self.round_drop_player = None
-        self.chain_pass_count = 0
-
-        self.clear_pending_auto_action()
-        self.pending_muzzle_cannons = []
-        self.last_new_cannons = []
-        self.fire_cannon_pool = []
-        self.waiting_new_pool_cannons = []
-        self.last_change_reached = {}
-        self.last_fire_report_lines = []
-
-        self._record_turn_change_event("full_round_finished")
-        self._record_phase_change_event()
-
-    # 进阶函数：在打炮或吃子阶段结束后调用，自动检查当前方是否还有可继续的操作（打炮或吃子）
-    # 如果没有则自动切换到另一方的结算阶段；如果连续两方都无法继续，则结束整个大回合，进入下一回合的落子阶段。
+        return finish_full_round_impl(self)
     def advance_turn(self) -> None:
-        while True:
-            # 1. 炮口选择阶段：必须停下来等玩家选择
-            if self.phase == "muzzle":
-                return
-
-            # 2. 打炮阶段
-            if self.phase == "fire":
-                fireable = self.get_fireable_cannons()
-
-                if len(fireable) >= 2:
-                    return
-
-                if len(fireable) == 1:
-                    cannon = fireable[0]
-                    action = self.get_legal_fire_actions()[0]
-
-                    if self.last_new_cannons:
-                        formed_text = "、".join(
-                            format_cannon_for_record(c, self.cannon_record_style)
-                            for c in self.last_new_cannons
-                        )
-                        message = (
-                            f"本步形成{formed_text}\n"
-                            f"当前仅有 1 门可发射炮，可点击棋盘任意位置确认发射 "
-                            f"{format_cannon_for_record(cannon, self.cannon_record_style)}"
-                        )
-                    else:
-                        message = (
-                            f"当前仅有 1 门可发射炮，可点击棋盘任意位置确认发射 "
-                            f"{format_cannon_for_record(cannon, self.cannon_record_style)}"
-                        )
-
-                    self.set_pending_auto_action(action, message)
-                    return
-
-                self.phase = "eat"
-                continue
-
-            # 3. 吃子阶段
-            if self.phase == "eat":
-                targets = self.get_capturable_targets(self.current_player)
-
-                if len(targets) >= 2:
-                    return
-
-                if len(targets) == 1:
-                    x, y = targets[0]
-                    action = self.get_legal_eat_actions()[0]
-                    message = f"当前仅有 1 个可吃目标，可点击棋盘任意位置确认吃掉 ({x}, {y})"
-
-                    self.set_pending_auto_action(action, message)
-                    return
-
-                # 当前方已经无法继续结算
-                self.chain_pass_count += 1
-
-                # 若连续两方都无法继续，则整个大回合结束
-                if self.chain_pass_count >= 2:
-                    self.add_last_action_event(
-                        self._make_event(
-                            "auto_action",
-                            action_type="finish_full_round",
-                            reason="both_sides_cannot_continue",
-                        )
-                    )
-                    self.finish_full_round()
-                    return
-
-                # 否则切换到另一方，开始它的结算阶段
-                previous_player = self.current_player
-                self.current_player = self.opponent(self.current_player)
-
-                self.add_last_action_event(
-                    self._make_event(
-                        "auto_action",
-                        action_type="switch_resolution_side",
-                        reason="current_side_cannot_continue",
-                        from_player=previous_player,
-                        to_player=self.current_player,
-                        to_player_name=player_name(self.current_player),
-                    )
-                )
-
-                self.start_resolution_for_current_player()
-                continue
-
-            # 4. 落子阶段或其他阶段，不自动推进
-            return
-
+        return advance_turn_impl(self)
     def calculate_score(self) -> tuple[int, int]:
-        red_score = self.board.piece_sum("R")
-        blue_score = self.board.piece_sum("B") + 9
-        return red_score, blue_score
-
-    # 根据双方得分判断胜负，返回 "R"、"B" 或 None（平局）
-    def determine_winner_by_score(self) -> str | None:
-        red_score, blue_score = self.calculate_score()
-
-        if red_score > blue_score:
-            return "R"
-        if blue_score > red_score:
-            return "B"
-        return None
-
+        return calculate_score_impl(self)
+    def calculate_score(self) -> tuple[int, int]:
+        return calculate_score_impl(self)
     def finish_game(
         self,
         reason: str,
         winner: str | None = None,
     ) -> None:
-        self.game_over = True
-        self.game_over_reason = reason
-
-        if winner is None:
-            winner = self.determine_winner_by_score()
-
-        self.winner = winner
-        self.phase = "drop"
-        self.clear_pending_auto_action()
-
+        return finish_game_impl(self, reason, winner)
     def finish_by_agreement(self) -> None:
-        self.finish_game(reason="agreement", winner=None)
-
+        return finish_by_agreement_impl(self)
     def resign(self, resigning_player: str | None = None) -> None:
-        if resigning_player is None:
-            resigning_player = self.current_player
-
-        winner = self.opponent(resigning_player)
-        self.finish_game(reason="resign", winner=winner)
+        return resign_impl(self, resigning_player)
 
     def new_cannons_report(self) -> str:
         from core.record import new_cannons_report
