@@ -114,6 +114,8 @@ def run_app() -> None:
         top_overlay = get_top_overlay_name()
         if top_overlay is not None:
             legal_highlights = {}
+            capturable_cells = []
+            cannon_highlights = []
             hovered_eat_cells = []
             hovered_cannon_highlights = []
             hovered_cell = None
@@ -145,7 +147,12 @@ def run_app() -> None:
 
         preview_board_data = None
 
-        if app_mode == "game" and not game.game_over and not settings_open and confirm_dialog is None:
+        if (
+            app_mode == "game"
+            and not game.game_over
+            and top_overlay is None
+            and not game.has_pending_auto_action()
+        ):
             preview_action = None
 
             if game.phase == "drop" and hovered_cell is not None and preview_drop_enabled:
@@ -194,6 +201,29 @@ def run_app() -> None:
                     win_mx, win_my = event.pos
                     mx, my = window_to_logical(win_mx, win_my)
 
+                    if confirm_dialog is not None:
+                        panel_rect = overlay_button_rects.get("confirm_panel")
+                        if panel_rect is not None and not panel_rect.collidepoint(mx, my):
+                            confirm_dialog = None
+                            confirm_action = None
+                            continue
+
+                        if "cancel" in overlay_button_rects and overlay_button_rects["cancel"].collidepoint(mx, my):
+                            confirm_dialog = None
+                            confirm_action = None
+                            continue
+
+                        if "confirm" in overlay_button_rects and overlay_button_rects["confirm"].collidepoint(mx, my):
+                            if confirm_action == "quit":
+                                running = False
+                                continue
+
+                            confirm_dialog = None
+                            confirm_action = None
+                            continue
+
+                        continue
+
                     if menu_load_open:
                         panel_rect = overlay_button_rects.get("menu_load_slot_panel")
                         if panel_rect is not None and not panel_rect.collidepoint(mx, my):
@@ -210,8 +240,12 @@ def run_app() -> None:
                                 settings_load_open = False
                                 record_open = False
                                 record_scroll = 0
+                                hovered_cell = None
+                                preview_board_data = None
                                 confirm_dialog = None
                                 confirm_action = None
+                                status_message = "已从槽位 1 载入对局。"
+                                status_is_error = False
                             except Exception as e:
                                 status_message = f"读档失败：{e}"
                                 status_is_error = True
@@ -227,8 +261,12 @@ def run_app() -> None:
                                 settings_load_open = False
                                 record_open = False
                                 record_scroll = 0
+                                hovered_cell = None
+                                preview_board_data = None
                                 confirm_dialog = None
                                 confirm_action = None
+                                status_message = "已从槽位 2 载入对局。"
+                                status_is_error = False
                             except Exception as e:
                                 status_message = f"读档失败：{e}"
                                 status_is_error = True
@@ -244,8 +282,12 @@ def run_app() -> None:
                                 settings_load_open = False
                                 record_open = False
                                 record_scroll = 0
+                                hovered_cell = None
+                                preview_board_data = None
                                 confirm_dialog = None
                                 confirm_action = None
+                                status_message = "已从槽位 3 载入对局。"
+                                status_is_error = False
                             except Exception as e:
                                 status_message = f"读档失败：{e}"
                                 status_is_error = True
@@ -266,9 +308,11 @@ def run_app() -> None:
                         settings_load_open = False
                         record_open = False
                         record_scroll = 0
+                        hovered_cell = None
+                        preview_board_data = None
                         confirm_dialog = None
                         confirm_action = None
-                        status_message = ""
+                        status_message = "已开始新对局。"
                         status_is_error = False
                         continue
 
@@ -277,7 +321,11 @@ def run_app() -> None:
                         continue
 
                     if "menu_quit" in overlay_button_rects and overlay_button_rects["menu_quit"].collidepoint(mx, my):
-                        running = False
+                        confirm_dialog = {
+                            "title": "确认退出",
+                            "message": "是否确认退出游戏？",
+                        }
+                        confirm_action = "quit"
                         continue
 
                 continue
@@ -308,7 +356,11 @@ def run_app() -> None:
             elif event.type == pygame.MOUSEMOTION:
                 win_mx, win_my = event.pos
                 mouse_pos = window_to_logical(win_mx, win_my)
-                hovered_cell = pixel_to_board(win_mx, win_my)
+
+                if get_top_overlay_name() is not None:
+                    hovered_cell = None
+                else:
+                    hovered_cell = pixel_to_board(win_mx, win_my)
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 win_mx, win_my = event.pos
@@ -359,12 +411,19 @@ def run_app() -> None:
                 if game.game_over:
                     if "game_over_restart" in overlay_button_rects and overlay_button_rects["game_over_restart"].collidepoint(mx, my):
                         game = Game()
-                        status_message = "已重新开始对局。"
-                        status_is_error = False
+                        app_mode = "game"
+                        menu_load_open = False
+                        settings_open = False
+                        settings_save_open = False
+                        settings_load_open = False
                         record_open = False
                         record_scroll = 0
+                        hovered_cell = None
+                        preview_board_data = None
                         confirm_dialog = None
                         confirm_action = None
+                        status_message = "已重新开始对局。"
+                        status_is_error = False
                         continue
 
                     if "game_over_load" in overlay_button_rects and overlay_button_rects["game_over_load"].collidepoint(mx, my):
@@ -375,8 +434,12 @@ def run_app() -> None:
                         settings_open = False
                         settings_save_open = False
                         settings_load_open = False
+                        hovered_cell = None
+                        preview_board_data = None
                         confirm_dialog = None
                         confirm_action = None
+                        status_message = "请选择要载入的存档槽位。"
+                        status_is_error = False
                         continue
 
                     if "game_over_quit" in overlay_button_rects and overlay_button_rects["game_over_quit"].collidepoint(mx, my):
@@ -598,6 +661,8 @@ def run_app() -> None:
                         }
                         confirm_action = "quit"
                         settings_open = False
+                        settings_save_open = False
+                        settings_load_open = False
                         continue
 
                     continue
@@ -667,13 +732,21 @@ def run_app() -> None:
                 board_pos = pixel_to_board(win_mx, win_my)
 
                 if record_open:
-                    if "record_up" in overlay_button_rects and overlay_button_rects["record_up"].collidepoint(mx, my):
-                        record_scroll = max(0, record_scroll - 1)
-                        continue
+                    panel_rect = overlay_button_rects.get("record_panel")
+                    if panel_rect is not None:
+                        if not panel_rect.collidepoint(mx, my):
+                            record_open = False
+                            continue
 
-                    if "record_down" in overlay_button_rects and overlay_button_rects["record_down"].collidepoint(mx, my):
-                        total_pages = max(1, (len(game.history) + 6 - 1) // 6)
-                        record_scroll = min(total_pages - 1, record_scroll + 1)
+                        if "record_up" in overlay_button_rects and overlay_button_rects["record_up"].collidepoint(mx, my):
+                            record_scroll = max(0, record_scroll - 1)
+                            continue
+
+                        if "record_down" in overlay_button_rects and overlay_button_rects["record_down"].collidepoint(mx, my):
+                            total_pages = max(1, (len(game.history) + 6 - 1) // 6)
+                            record_scroll = min(total_pages - 1, record_scroll + 1)
+                            continue
+
                         continue
 
                 if game.has_pending_auto_action():
@@ -683,7 +756,9 @@ def run_app() -> None:
                         if result["ok"]:
                             standardized = game.action_to_command_text(pending)
                             game.log_command(standardized)
-                            status_message = f"操作成功：{standardized}"
+
+                            payload = result.get("result", {})
+                            status_message = f"操作成功：{payload.get('action_text', standardized)}"
                             status_is_error = False
                         else:
                             status_message = f"操作失败：{result['message']}"
@@ -724,11 +799,7 @@ def run_app() -> None:
                                 game.log_command(standardized)
 
                                 payload = result.get("result", {})
-                                phase_info = payload.get("after", {}).get("phase_info", {})
-                                status_message = (
-                                    f"操作成功：{payload.get('action_text', standardized)}\n"
-                                    f"当前阶段：{phase_info.get('phase_name', game.phase_name())}"
-                                )
+                                status_message = f"操作成功：{payload.get('action_text', standardized)}"
                                 status_is_error = False
                             else:
                                 status_message = f"操作失败：{result['message']}"
@@ -772,11 +843,7 @@ def run_app() -> None:
                                 game.log_command(standardized)
 
                                 payload = result.get("result", {})
-                                phase_info = payload.get("after", {}).get("phase_info", {})
-                                status_message = (
-                                    f"操作成功：{payload.get('action_text', standardized)}\n"
-                                    f"当前阶段：{phase_info.get('phase_name', game.phase_name())}"
-                                )
+                                status_message = f"操作成功：{payload.get('action_text', standardized)}"
                                 status_is_error = False
                             else:
                                 status_message = f"操作失败：{result['message']}"

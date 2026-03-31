@@ -505,7 +505,7 @@ def draw_board(
             txt_rect = txt.get_rect(center=(cx, cy))
             surface.blit(txt, txt_rect)
 
-    if preview_board_data is not None:
+    if preview_board_data is not None and preview_board_data != board_data:
         preview_surface = pygame.Surface((LOGICAL_WIDTH, LOGICAL_HEIGHT), pygame.SRCALPHA)
 
         for y in range(1, BOARD_SIZE + 1):
@@ -539,11 +539,11 @@ def draw_board(
                         BOARD_LINE_DARK,
                     )
 
-                txt = fonts["piece"].render(str(level), True, (248, 248, 248))
+                txt = fonts["piece"].render(str(level), True, (232, 232, 232))
                 txt_rect = txt.get_rect(center=(cx, cy))
                 preview_surface.blit(txt, txt_rect)
 
-        preview_surface.set_alpha(110)
+        preview_surface.set_alpha(82)
         surface.blit(preview_surface, (0, 0))
 
 def draw_button(
@@ -586,13 +586,13 @@ def draw_card_panel(
     bg_color: tuple[int, int, int],
     border_color: tuple[int, int, int],
 ) -> None:
-    shadow = rect.move(ui.x(6), ui.y(6))
+    shadow = rect.move(ui.x(CARD_SHADOW_OFFSET), ui.y(CARD_SHADOW_OFFSET))
     shadow_surf = pygame.Surface((shadow.width, shadow.height), pygame.SRCALPHA)
     shadow_surf.fill(MODAL_SHADOW)
     surface.blit(shadow_surf, shadow.topleft)
 
-    pygame.draw.rect(surface, bg_color, rect, border_radius=ui.u(14))
-    pygame.draw.rect(surface, border_color, rect, 2, border_radius=ui.u(14))
+    pygame.draw.rect(surface, bg_color, rect, border_radius=ui.u(CARD_RADIUS))
+    pygame.draw.rect(surface, border_color, rect, 2, border_radius=ui.u(CARD_RADIUS))
 
 def draw_action_buttons(
     surface: pygame.Surface,
@@ -798,7 +798,14 @@ def draw_confirm_modal(
 
     draw_card_panel(surface, panel_rect, MODAL_BG, MODAL_BORDER)
 
-    draw_text(surface, title, fonts["heading"], TEXT_COLOR, panel_rect.x + ui.x(28), panel_rect.y + ui.y(26))
+    draw_text(
+        surface,
+        title,
+        fonts["heading"],
+        TEXT_COLOR,
+        panel_rect.x + ui.x(CARD_TITLE_LEFT),
+        panel_rect.y + ui.y(CARD_TITLE_TOP),
+    )
     draw_multiline_text(
         surface,
         message,
@@ -811,16 +818,16 @@ def draw_confirm_modal(
     )
 
     cancel_rect = pygame.Rect(
-        panel_rect.x + ui.x(120),
-        panel_rect.bottom - ui.y(90),
-        ui.x(180),
-        ui.y(56),
+        panel_rect.x + ui.x(130),
+        panel_rect.bottom - ui.y(92),
+        ui.x(200),
+        ui.y(52),
     )
     confirm_rect = pygame.Rect(
-        panel_rect.right - ui.x(300),
-        panel_rect.bottom - ui.y(90),
-        ui.x(180),
-        ui.y(56),
+        panel_rect.right - ui.x(330),
+        panel_rect.bottom - ui.y(92),
+        ui.x(200),
+        ui.y(52),
     )
 
     draw_button(surface, "取消", cancel_rect, fonts, hovered=False)
@@ -851,8 +858,15 @@ def draw_settings_panel(
     rects["settings_panel"] = panel_rect
     draw_card_panel(surface, panel_rect, MODAL_BG, MODAL_BORDER)
 
-    draw_text(surface, "设置", fonts["heading"], TEXT_COLOR, panel_rect.x + ui.x(32), panel_rect.y + ui.y(18))
-
+    draw_text(
+        surface,
+        "设置",
+        fonts["heading"],
+        TEXT_COLOR,
+        panel_rect.x + ui.x(CARD_TITLE_LEFT),
+        panel_rect.y + ui.y(CARD_TITLE_TOP),
+    )
+    
     labels = [
         ("open_save_slots", "保存到存档槽"),
         ("open_load_slots", "从存档槽载入"),
@@ -868,16 +882,16 @@ def draw_settings_panel(
         ("quit_game", "退出游戏"),
     ]
 
-    start_y = panel_rect.y + ui.y(88)
+    start_y = panel_rect.y + ui.y(92)
     for i, (key, text) in enumerate(labels):
         row = i // 2
         col = i % 2
 
         rect = pygame.Rect(
-            panel_rect.x + ui.x(42) + col * ui.x(360),
-            start_y + row * ui.y(60),
-            ui.x(320),
-            ui.y(46),
+            panel_rect.x + ui.x(42) + col * ui.x(372),
+            start_y + row * ui.y(58),
+            ui.x(332),
+            ui.y(CARD_BUTTON_HEIGHT),
         )
 
         if key in {"quit_game", "endgame", "resign"}:
@@ -911,15 +925,22 @@ def draw_slot_panel(
     rects: dict[str, pygame.Rect] = {}
 
     panel_rect = pygame.Rect(
-        (LOGICAL_WIDTH - ui.x(560)) // 2,
-        (LOGICAL_HEIGHT - ui.y(300)) // 2,
-        ui.x(560),
-        ui.y(300),
+        (LOGICAL_WIDTH - ui.x(SLOT_PANEL_WIDTH)) // 2,
+        (LOGICAL_HEIGHT - ui.y(SLOT_PANEL_HEIGHT)) // 2,
+        ui.x(SLOT_PANEL_WIDTH),
+        ui.y(SLOT_PANEL_HEIGHT),
     )
     rects[f"{prefix}_panel"] = panel_rect
     draw_card_panel(surface, panel_rect, MODAL_BG, MODAL_BORDER)
 
-    draw_text(surface, title, fonts["heading"], TEXT_COLOR, panel_rect.x + ui.x(28), panel_rect.y + ui.y(24))
+    draw_text(
+        surface,
+        title,
+        fonts["heading"],
+        TEXT_COLOR,
+        panel_rect.x + ui.x(CARD_TITLE_LEFT),
+        panel_rect.y + ui.y(CARD_TITLE_TOP),
+    )
 
     labels = [
         (f"{prefix}_1", "槽位 1"),
@@ -930,10 +951,10 @@ def draw_slot_panel(
 
     for i, (key, text) in enumerate(labels):
         rect = pygame.Rect(
-            panel_rect.x + ui.x(40),
-            panel_rect.y + ui.y(80) + i * ui.y(54),
+            panel_rect.centerx - ui.x(110),
+            panel_rect.y + ui.y(92) + i * ui.y(56),
             ui.x(220),
-            ui.y(42),
+            ui.y(44),
         )
         draw_button(
             surface,
@@ -957,10 +978,10 @@ def draw_main_menu(
     surface.fill(BG_COLOR)
 
     panel_rect = pygame.Rect(
-        (LOGICAL_WIDTH - ui.x(600)) // 2,
-        (LOGICAL_HEIGHT - ui.y(420)) // 2,
-        ui.x(600),
-        ui.y(420),
+        (LOGICAL_WIDTH - ui.x(640)) // 2,
+        (LOGICAL_HEIGHT - ui.y(460)) // 2,
+        ui.x(640),
+        ui.y(460),
     )
     rects["menu_panel"] = panel_rect
     draw_card_panel(surface, panel_rect, MODAL_BG, MODAL_BORDER)
@@ -969,16 +990,40 @@ def draw_main_menu(
     subtitle_font = ui.font("microsoftyaheiui", 30, bold=True)
 
     title_img = title_font.render("炮棋", True, TEXT_COLOR)
-    title_rect = title_img.get_rect(center=(panel_rect.centerx, panel_rect.y + ui.y(72)))
+    title_rect = title_img.get_rect(center=(panel_rect.centerx, panel_rect.y + ui.y(84)))
     surface.blit(title_img, title_rect)
 
     subtitle_img = subtitle_font.render("桌面版", True, TEXT_COLOR)
-    subtitle_rect = subtitle_img.get_rect(center=(panel_rect.centerx, panel_rect.y + ui.y(142)))
+    subtitle_rect = subtitle_img.get_rect(center=(panel_rect.centerx, panel_rect.y + ui.y(156)))
     surface.blit(subtitle_img, subtitle_rect)
 
-    start_rect = pygame.Rect(panel_rect.x + ui.x(170), panel_rect.y + ui.y(180), ui.x(260), ui.y(56))
-    load_rect = pygame.Rect(panel_rect.x + ui.x(170), panel_rect.y + ui.y(255), ui.x(260), ui.y(56))
-    quit_rect = pygame.Rect(panel_rect.x + ui.x(170), panel_rect.y + ui.y(330), ui.x(260), ui.y(56))
+    start_rect = pygame.Rect(
+        0,
+        panel_rect.y + ui.y(220),
+        ui.x(CARD_BUTTON_WIDTH),
+        ui.y(56),
+    )
+    start_rect.centerx = panel_rect.centerx
+
+    load_rect = pygame.Rect(
+        0,
+        panel_rect.y + ui.y(292),
+        ui.x(CARD_BUTTON_WIDTH),
+        ui.y(56),
+    )
+    load_rect.centerx = panel_rect.centerx
+
+    quit_rect = pygame.Rect(
+        0,
+        panel_rect.y + ui.y(364),
+        ui.x(CARD_BUTTON_WIDTH),
+        ui.y(56),
+    )
+    quit_rect.centerx = panel_rect.centerx
+
+    start_rect = pygame.Rect(panel_rect.x + ui.x(190), panel_rect.y + ui.y(180), ui.x(260), ui.y(56))
+    load_rect = pygame.Rect(panel_rect.x + ui.x(190), panel_rect.y + ui.y(255), ui.x(260), ui.y(56))
+    quit_rect = pygame.Rect(panel_rect.x + ui.x(190), panel_rect.y + ui.y(330), ui.x(260), ui.y(56))
 
     draw_button(surface, "开始游戏", start_rect, fonts, hovered=(mouse_pos is not None and start_rect.collidepoint(mouse_pos)))
     draw_button(surface, "载入存档", load_rect, fonts, hovered=(mouse_pos is not None and load_rect.collidepoint(mouse_pos)))
@@ -1039,7 +1084,12 @@ def draw_game_over_overlay(
     overlay.fill(OVERLAY_BG)
     surface.blit(overlay, (0, 0))
 
-    panel_rect = pygame.Rect(LOGICAL_WIDTH // 2 - 300, LOGICAL_HEIGHT // 2 - 140, 600, 280)
+    panel_rect = pygame.Rect(
+        LOGICAL_WIDTH // 2 - ui.x(GAME_OVER_PANEL_WIDTH) // 2,
+        LOGICAL_HEIGHT // 2 - ui.y(GAME_OVER_PANEL_HEIGHT) // 2,
+        ui.x(GAME_OVER_PANEL_WIDTH),
+        ui.y(GAME_OVER_PANEL_HEIGHT),
+    )
     rects["game_over_panel"] = panel_rect
     draw_card_panel(surface, panel_rect, OVERLAY_PANEL_BG, OVERLAY_PANEL_BORDER)
 
@@ -1057,13 +1107,13 @@ def draw_game_over_overlay(
     big_title_font = ui.font("microsoftyaheiui", 42, bold=True)
     big_body_font = ui.font("microsoftyaheiui", 28)
 
-    draw_text(surface, title, big_title_font, color, panel_rect.x + 56, panel_rect.y + 42)
-    draw_text(surface, "请选择下方操作：", big_body_font, TEXT_COLOR, panel_rect.x + 56, panel_rect.y + 118)
+    draw_text(surface, title, big_title_font, color, panel_rect.x + ui.x(40), panel_rect.y + ui.y(34))
+    draw_text(surface, "请选择下方操作：", big_body_font, TEXT_COLOR, panel_rect.x + ui.x(40), panel_rect.y + ui.y(106))
 
-    restart_rect = pygame.Rect(panel_rect.x + 28, panel_rect.y + 178, ui.x(130), ui.y(54))
-    load_rect = pygame.Rect(panel_rect.x + 170, panel_rect.y + 178, ui.x(130), ui.y(54))
-    export_rect = pygame.Rect(panel_rect.x + 312, panel_rect.y + 178, ui.x(130), ui.y(54))
-    quit_rect = pygame.Rect(panel_rect.x + 454, panel_rect.y + 178, ui.x(130), ui.y(54))
+    restart_rect = pygame.Rect(panel_rect.x + ui.x(24), panel_rect.y + ui.y(188), ui.x(138), ui.y(50))
+    load_rect = pygame.Rect(panel_rect.x + ui.x(174), panel_rect.y + ui.y(188), ui.x(138), ui.y(50))
+    export_rect = pygame.Rect(panel_rect.x + ui.x(324), panel_rect.y + ui.y(188), ui.x(138), ui.y(50))
+    quit_rect = pygame.Rect(panel_rect.x + ui.x(474), panel_rect.y + ui.y(188), ui.x(138), ui.y(50))
 
     draw_button(surface, "重开", restart_rect, fonts, hovered=(mouse_pos is not None and restart_rect.collidepoint(mouse_pos)))
     draw_button(surface, "载入", load_rect, fonts, hovered=(mouse_pos is not None and load_rect.collidepoint(mouse_pos)))
@@ -1262,6 +1312,17 @@ def render_all(
                 menu_load_open,
             )
         )
+
+        if confirm_dialog is not None:
+            overlay_buttons.update(
+                draw_confirm_modal(
+                    surface,
+                    confirm_dialog["title"],
+                    confirm_dialog["message"],
+                    fonts,
+                )
+            )
+
         return [], {}, overlay_buttons
 
     surface.fill(BG_COLOR)
@@ -1300,6 +1361,17 @@ def render_all(
     )
     if game_over_buttons:
         overlay_buttons.update(game_over_buttons)
+
+        if confirm_dialog is not None:
+            overlay_buttons.update(
+                draw_confirm_modal(
+                    surface,
+                    confirm_dialog["title"],
+                    confirm_dialog["message"],
+                    fonts,
+                )
+            )
+
         return button_items, system_buttons, overlay_buttons
 
     if record_open and not settings_open and confirm_dialog is None:
@@ -1326,27 +1398,27 @@ def render_all(
             )
         )
 
-        if settings_save_open:
-            overlay_buttons.update(
-                draw_slot_panel(
-                    surface,
-                    "选择保存槽位",
-                    fonts,
-                    mouse_pos,
-                    "save_slot",
-                )
+    if settings_open and settings_save_open:
+        overlay_buttons.update(
+            draw_slot_panel(
+                surface,
+                "选择保存槽位",
+                fonts,
+                mouse_pos,
+                "save_slot",
             )
+        )
 
-        if settings_load_open:
-            overlay_buttons.update(
-                draw_slot_panel(
-                    surface,
-                    "选择读取槽位",
-                    fonts,
-                    mouse_pos,
-                    "load_slot",
-                )
+    if settings_open and settings_load_open:
+        overlay_buttons.update(
+            draw_slot_panel(
+                surface,
+                "选择读取槽位",
+                fonts,
+                mouse_pos,
+                "load_slot",
             )
+        )
 
     if confirm_dialog is not None:
         overlay_buttons.update(
