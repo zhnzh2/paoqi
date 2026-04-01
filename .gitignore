@@ -1,13 +1,7 @@
+node_modules/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-
-match_logs/
-datasets/
-
+.env
 .vscode/
-.idea/
-
-*.log
-*.tmp
+dist/
+build/

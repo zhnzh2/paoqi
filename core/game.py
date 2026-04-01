@@ -903,8 +903,8 @@ class Game:
         return advance_turn_impl(self)
     def calculate_score(self) -> tuple[int, int]:
         return calculate_score_impl(self)
-    def calculate_score(self) -> tuple[int, int]:
-        return calculate_score_impl(self)
+    def determine_winner_by_score(self) -> str | None:
+        return determine_winner_by_score_impl(self)
     def finish_game(
         self,
         reason: str,
