@@ -114,6 +114,44 @@ def run_app() -> None:
         confirm_dialog = make_quit_confirm_dialog()
         confirm_action = "quit"
 
+    def clear_transient_ui_state() -> None:
+        nonlocal hovered_cell, preview_board_data
+        nonlocal confirm_dialog, confirm_action
+        nonlocal record_open
+
+        hovered_cell = None
+        preview_board_data = None
+        confirm_dialog = None
+        confirm_action = None
+        record_open = False
+
+    def save_to_slot(slot: int) -> None:
+        nonlocal status_message, status_is_error
+
+        try:
+            save_game_to_file(game, save_slot_files[slot])
+            status_message = f"已保存到槽位 {slot}"
+            status_is_error = False
+        except Exception as e:
+            status_message = f"保存失败：{e}"
+            status_is_error = True
+
+    def load_from_slot_in_game(slot: int, close_settings: bool = True) -> None:
+        nonlocal game, status_message, status_is_error
+        nonlocal settings_open, settings_load_open
+
+        try:
+            game = load_game_from_file(save_slot_files[slot])
+            status_message = f"已从槽位 {slot} 读取存档"
+            status_is_error = False
+
+            if close_settings:
+                settings_load_open = False
+                settings_open = False
+        except Exception as e:
+            status_message = f"读档失败：{e}"
+            status_is_error = True
+
     running = True
     while running:
         if app_mode == "game" and not game.game_over:
@@ -430,14 +468,7 @@ def run_app() -> None:
                             continue
 
                         if action in {"1", "2", "3"}:
-                            slot = int(action)
-                            try:
-                                save_game_to_file(game, save_slot_files[slot])
-                                status_message = f"已保存到槽位 {slot}"
-                                status_is_error = False
-                            except Exception as e:
-                                status_message = f"保存失败：{e}"
-                                status_is_error = True
+                            save_to_slot(int(action))
                             continue
 
                         continue
@@ -451,16 +482,7 @@ def run_app() -> None:
                             continue
 
                         if action in {"1", "2", "3"}:
-                            slot = int(action)
-                            try:
-                                game = load_game_from_file(save_slot_files[slot])
-                                status_message = f"已从槽位 {slot} 读取存档"
-                                status_is_error = False
-                                settings_load_open = False
-                                settings_open = False
-                            except Exception as e:
-                                status_message = f"读档失败：{e}"
-                                status_is_error = True
+                            load_from_slot_in_game(int(action), close_settings=True)
                             continue
 
                         continue
@@ -555,10 +577,7 @@ def run_app() -> None:
                             try:
                                 game.undo()
                                 game.clear_pending_auto_action()
-                                hovered_cell = None
-                                confirm_dialog = None
-                                confirm_action = None
-                                record_open = False
+                                clear_transient_ui_state()
                                 status_message = "已撤销上一步操作。"
                                 status_is_error = False
                             except Exception as e:
@@ -584,10 +603,7 @@ def run_app() -> None:
                                             break
 
                                     game.clear_pending_auto_action()
-                                    hovered_cell = None
-                                    confirm_dialog = None
-                                    confirm_action = None
-                                    record_open = False
+                                    clear_transient_ui_state()
                                     status_message = f"已回退 {stepped} 步，回到落子阶段。"
                                     status_is_error = False
                             except Exception as e:
@@ -598,6 +614,7 @@ def run_app() -> None:
 
                         elif key == "restart":
                             game = Game()
+                            clear_transient_ui_state()
                             status_message = "已重新开始对局。"
                             status_is_error = False
                             handled = True

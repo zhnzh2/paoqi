@@ -406,11 +406,3 @@ def draw_game_over_overlay(
     rects["game_over_quit"] = quit_rect
 
     return rects
-
-def get_quit_button_rect() -> pygame.Rect:
-    return ui.rect(
-        SIDEBAR_X + 730,
-        SIDEBAR_Y + 868,
-        QUIT_BUTTON_WIDTH,
-        QUIT_BUTTON_HEIGHT,
-    )

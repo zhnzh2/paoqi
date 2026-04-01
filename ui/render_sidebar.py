@@ -15,36 +15,6 @@ from ui.render_common import (
     multiline_block_height,
 )
 
-def draw_action_buttons(
-    surface: pygame.Surface,
-    actions: list[dict[str, Any]],
-    fonts: dict[str, pygame.font.Font],
-    start_x: int,
-    start_y: int,
-    width: int,
-    mouse_pos: tuple[int, int] | None,
-) -> tuple[list[tuple[pygame.Rect, dict[str, Any]]], int]:
-    button_items: list[tuple[pygame.Rect, dict[str, Any]]] = []
-
-    shown_actions = actions[:ACTION_BUTTON_MAX_COUNT]
-    y = start_y
-
-    for action in shown_actions:
-        rect = pygame.Rect(
-            start_x,
-            y,
-            ui.x(ACTION_BUTTON_WIDTH),
-            ui.y(ACTION_BUTTON_HEIGHT),
-        )
-
-        hovered = mouse_pos is not None and rect.collidepoint(mouse_pos)
-        draw_button(surface, action.get("label", str(action)), rect, fonts, hovered=hovered)
-
-        button_items.append((rect, action))
-        y += ui.y(ACTION_BUTTON_HEIGHT + ACTION_BUTTON_GAP)
-
-    return button_items, y
-
 def draw_system_buttons(
     surface: pygame.Surface,
     fonts: dict[str, pygame.font.Font],

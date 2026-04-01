@@ -177,6 +177,3 @@ def render_all(
         )
 
     return button_items, system_buttons, overlay_buttons
-
-def get_action_button_rects_placeholder() -> list[tuple[pygame.Rect, dict[str, Any]]]:
-    return []
