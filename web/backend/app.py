@@ -82,6 +82,26 @@ def apply_action(req: ActionRequest) -> dict:
         },
     )
 
+@app.post("/api/preview-action")
+def preview_action(req: ActionRequest) -> dict:
+    game = session.get_game()
+
+    try:
+        preview_game = game.clone()
+        result = preview_game.try_apply_action_with_snapshot(req.action)
+
+        if not result["ok"]:
+            return build_error_response(result["message"])
+
+        payload = result.get("result", {})
+        return {
+            "ok": True,
+            "message": "preview ok",
+            "preview_snapshot": payload.get("after"),
+            "result": payload,
+        }
+    except Exception as e:
+        return build_error_response(f"预览失败：{e}")
 
 @app.post("/api/confirm-pending")
 def confirm_pending_action() -> dict:
@@ -188,3 +208,31 @@ def export_record() -> dict:
         }
     except Exception as e:
         return build_error_response(f"导出失败：{e}")
+    
+@app.get("/api/save-slots")
+def get_save_slots() -> dict:
+    slots = []
+
+    for slot, path in SAVE_SLOT_FILES.items():
+        p = Path(path)
+        slots.append(
+            {
+                "slot": slot,
+                "exists": p.exists(),
+                "updated_at": p.stat().st_mtime if p.exists() else None,
+            }
+        )
+
+    game = session.get_game()
+    can_continue = len(game.history) > 0 and not game.game_over
+
+    return {
+        "ok": True,
+        "message": "ok",
+        "data": {
+            "can_continue": can_continue,
+            "slots": slots,
+            "game_over": game.game_over,
+            "history_count": len(game.history),
+        },
+    }

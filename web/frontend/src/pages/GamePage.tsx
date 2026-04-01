@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   applyAction,
   confirmPending,
@@ -8,6 +8,7 @@ import {
   healthCheck,
   loadFromSlot,
   newGame,
+  previewAction,
   resignGame,
   restartGame,
   saveToSlot,
@@ -16,7 +17,12 @@ import {
 import Board from "../components/Board";
 import type { GameAction, GamePayload } from "../types/game";
 
-export default function GamePage() {
+type GamePageProps = {
+  onBackToMenu: () => void;
+  openLoadModalOnMount?: boolean;
+};
+
+export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }: GamePageProps) {
   type HighlightType = "drop" | "eat" | "muzzle" | "fire" | null;
   function normalizeCannonPositions(cannon: any): Array<{ x: number; y: number }> {
     if (!cannon) {
@@ -165,15 +171,6 @@ export default function GamePage() {
     const phase = payload.phase;
     const actions = payload.legal_actions ?? [];
 
-    if (phase === "drop" && showDropHighlight) {
-      for (const action of actions) {
-        if (action.type === "move" && typeof action.x === "number" && typeof action.y === "number") {
-          result[`${action.x},${action.y}`] = "drop";
-        }
-      }
-      return result;
-    }
-
     if (phase === "eat" && showEatHighlight) {
       for (const action of actions) {
         if (action.type === "eat" && typeof action.x === "number" && typeof action.y === "number") {
@@ -207,6 +204,29 @@ export default function GamePage() {
       return result;
     }
 
+    return result;
+  }
+
+  function buildHoveredDropHighlight(
+    payload: GamePayload | null,
+    hovered: { x: number; y: number } | null
+  ): Record<string, HighlightType> {
+    const result: Record<string, HighlightType> = {};
+
+    if (!payload || !hovered) {
+      return result;
+    }
+
+    if (payload.phase !== "drop" || !showDropHighlight) {
+      return result;
+    }
+
+    const action = findActionByCell(payload.legal_actions, payload.phase, hovered.x, hovered.y);
+    if (!action) {
+      return result;
+    }
+
+    result[`${hovered.x},${hovered.y}`] = "drop";
     return result;
   }
 
@@ -319,7 +339,96 @@ export default function GamePage() {
       for (const pos of positions) {
         result[`${pos.x},${pos.y}`] = true;
       }
+    }
+
+    return result;
+  }
+
+  function directionToArrow(direction: string | null | undefined): string | null {
+    if (direction === "left") {
+      return "←";
+    }
+    if (direction === "right") {
+      return "→";
+    }
+    if (direction === "up") {
+      return "↑";
+    }
+    if (direction === "down") {
+      return "↓";
+    }
+    return null;
+  }
+
+  function getArrowEndpointForDirection(
+    cannon: any,
+    direction: string | null | undefined
+  ): { x: number; y: number } | null {
+    const positions = normalizeCannonPositions(cannon);
+    if (!direction || positions.length === 0) {
+      return null;
+    }
+
+    const xs = positions.map((p) => p.x);
+    const ys = positions.map((p) => p.y);
+
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+
+    if (direction === "left") {
+      return positions.find((p) => p.x === minX) ?? null;
+    }
+    if (direction === "right") {
+      return positions.find((p) => p.x === maxX) ?? null;
+    }
+    if (direction === "up") {
+      return positions.find((p) => p.y === minY) ?? null;
+    }
+    if (direction === "down") {
+      return positions.find((p) => p.y === maxY) ?? null;
+    }
+
+    return null;
+  }
+
+  function buildArrowCells(payload: GamePayload | null): Record<string, string> {
+    const result: Record<string, string> = {};
+
+    if (!payload) {
       return result;
+    }
+
+    const actions = payload.legal_actions ?? [];
+
+    if (payload.phase === "muzzle") {
+      for (const action of actions) {
+        if (action.type !== "muzzle") {
+          continue;
+        }
+
+        const endpoint = getArrowEndpointForDirection(action.cannon, action.direction);
+        const arrow = directionToArrow(action.direction);
+        if (endpoint && arrow) {
+          result[`${endpoint.x},${endpoint.y}`] = arrow;
+        }
+      }
+    }
+
+    if (payload.phase === "fire") {
+      for (const action of actions) {
+        if (action.type !== "fire") {
+          continue;
+        }
+
+        const mouth = action.cannon?.mouth ?? action.cannon?.direction ?? null;
+        const endpoint = getArrowEndpointForDirection(action.cannon, mouth);
+        const arrow = directionToArrow(mouth);
+        if (endpoint && arrow) {
+          result[`${endpoint.x},${endpoint.y}`] = arrow;
+        }
+      }
     }
 
     return result;
@@ -370,7 +479,15 @@ export default function GamePage() {
   }
 
   async function handleBoardCellClick(x: number, y: number) {
-    if (!payload || loading || modalStack.length > 0 || payload.game_over) {
+    if (!payload || isBoardBusy || modalStack.length > 0 || payload.game_over) {
+      return;
+    }
+
+    if (payload.has_pending_auto_action) {
+      setStatusMessage(`正在确认自动动作...`);
+      setStatusIsError(false);
+      await runAction(confirmPending, "board");
+      setHoveredCell(null);
       return;
     }
 
@@ -384,11 +501,11 @@ export default function GamePage() {
     setStatusMessage(`正在处理 (${x}, ${y}) 的点击...`);
     setStatusIsError(false);
 
-    await runAction(() => applyAction(action));
+    await runAction(() => applyAction(action), "board");
     setHoveredCell(null);
   }
   function handleBoardCellHover(x: number, y: number) {
-    if (loading || modalStack.length > 0 || payload?.game_over) {
+    if (isBoardBusy || modalStack.length > 0 || payload?.game_over) {
       return;
     }
     setHoveredCell({ x, y });
@@ -398,18 +515,46 @@ export default function GamePage() {
     setHoveredCell(null);
   }
   const [backendOk, setBackendOk] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [initLoading, setInitLoading] = useState<boolean>(false);
+  const [busyScope, setBusyScope] = useState<"none" | "board" | "sidebar">("none");
+  const isBoardBusy = busyScope === "board";
+  const isSidebarBusy = busyScope === "sidebar";
   const [payload, setPayload] = useState<GamePayload | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>("正在连接后端...");
   const [statusIsError, setStatusIsError] = useState<boolean>(false);
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null);
   const [previewBoardData, setPreviewBoardData] = useState<({ color: "R" | "B"; level: number } | null)[][] | null>(null);
+  const previewRequestIdRef = useRef(0);
   const [showRecordPanel, setShowRecordPanel] = useState<boolean>(true);
   const [showCoordInsideCell, setShowCoordInsideCell] = useState<boolean>(false);
   const [showDropHighlight, setShowDropHighlight] = useState<boolean>(true);
   const [showEatHighlight, setShowEatHighlight] = useState<boolean>(true);
   const [showMuzzleHighlight, setShowMuzzleHighlight] = useState<boolean>(true);
   const [showFireHighlight, setShowFireHighlight] = useState<boolean>(true);
+  const [showArrowHints, setShowArrowHints] = useState<boolean>(true);
+  const [showHoverPreview, setShowHoverPreview] = useState<boolean>(true);
+  const [showCannonHoverEnhance, setShowCannonHoverEnhance] = useState<boolean>(true);
+  const [compactSidebar, setCompactSidebar] = useState<boolean>(false);
+  const [recordCollapsed, setRecordCollapsed] = useState<boolean>(false);
+  const [recordPage, setRecordPage] = useState<number>(1);
+  const recordPageSize = 20;
+
+  const totalRecordPages = useMemo(() => {
+    const total = payload?.history.length ?? 0;
+    return Math.max(1, Math.ceil(total / recordPageSize));
+  }, [payload]);
+
+  const pagedHistory = useMemo(() => {
+    const history = payload?.history ?? [];
+    const start = (recordPage - 1) * recordPageSize;
+    return history.slice(start, start + recordPageSize);
+  }, [payload, recordPage]);
+
+  useEffect(() => {
+    if (recordPage > totalRecordPages) {
+      setRecordPage(totalRecordPages);
+    }
+  }, [recordPage, totalRecordPages]);
 
   const [modalStack, setModalStack] = useState<string[]>([]);
 
@@ -480,8 +625,11 @@ export default function GamePage() {
     closeModal("confirm");
   }, [closeModal]);
 
-  async function runAction(action: () => Promise<any>) {
-    setLoading(true);
+  async function runAction(
+    action: () => Promise<any>,
+    scope: "board" | "sidebar" = "sidebar"
+  ) {
+    setBusyScope(scope);
     try {
       const res = await action();
       if (res.ok) {
@@ -498,13 +646,26 @@ export default function GamePage() {
       setStatusMessage(`请求失败：${String(error)}`);
       setStatusIsError(true);
     } finally {
-      setLoading(false);
+      setBusyScope("none");
     }
   }
 
   useEffect(() => {
+    if (openLoadModalOnMount) {
+      openModal("save-load");
+    }
+  }, [openLoadModalOnMount, openModal]);
+
+  useEffect(() => {
+    if (payload?.game_over) {
+      setHoveredCell(null);
+      setPreviewBoardData(null);
+    }
+  }, [payload?.game_over]);
+
+  useEffect(() => {
     async function init() {
-      setLoading(true);
+      setInitLoading(true);
       try {
         const health = await healthCheck();
         setBackendOk(health.ok);
@@ -523,7 +684,7 @@ export default function GamePage() {
         setStatusMessage(`初始化失败：${String(error)}`);
         setStatusIsError(true);
       } finally {
-        setLoading(false);
+        setInitLoading(false);
       }
     }
 
@@ -531,9 +692,62 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
-    const preview = buildPreviewBoard(payload, hoveredCell);
-    setPreviewBoardData(preview);
-  }, [payload, hoveredCell]);
+    async function runPreview() {
+      if (!showHoverPreview) {
+        setPreviewBoardData(null);
+        return;
+      }
+
+      if (!payload || !hoveredCell) {
+        setPreviewBoardData(null);
+        return;
+      }
+
+      if (busyScope !== "none" || modalStack.length > 0 || payload.game_over || payload.has_pending_auto_action) {
+        setPreviewBoardData(null);
+        return;
+      }
+
+      const action = findActionByCell(payload.legal_actions, payload.phase, hoveredCell.x, hoveredCell.y);
+      if (!action) {
+        setPreviewBoardData(null);
+        return;
+      }
+
+      const shouldPreview =
+        payload.phase === "drop" ||
+        payload.phase === "eat" ||
+        payload.phase === "fire" ||
+        payload.phase === "muzzle";
+
+      if (!shouldPreview) {
+        setPreviewBoardData(null);
+        return;
+      }
+
+      const requestId = ++previewRequestIdRef.current;
+
+      try {
+        const res = await previewAction(action);
+
+        if (requestId !== previewRequestIdRef.current) {
+          return;
+        }
+
+        if (res.ok && res.preview_snapshot && res.preview_snapshot.board) {
+          setPreviewBoardData(res.preview_snapshot.board);
+        } else {
+          setPreviewBoardData(null);
+        }
+      } catch {
+        if (requestId === previewRequestIdRef.current) {
+          setPreviewBoardData(null);
+        }
+      }
+    }
+
+    runPreview();
+  }, [payload, hoveredCell, initLoading, modalStack, showHoverPreview]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -560,8 +774,13 @@ export default function GamePage() {
   }, [payload]);
 
   const highlightedCells = useMemo(() => {
-    return buildHighlightedCells(payload);
-  }, [payload]);
+    const base = buildHighlightedCells(payload);
+    const dropHover = buildHoveredDropHighlight(payload, hoveredCell);
+    return {
+      ...base,
+      ...dropHover
+    };
+  }, [payload, hoveredCell]);
 
   const hoveredCellKey = useMemo(() => {
     if (!hoveredCell) {
@@ -571,8 +790,18 @@ export default function GamePage() {
   }, [hoveredCell]);
 
   const hoveredCannonCells = useMemo(() => {
+    if (!showCannonHoverEnhance) {
+      return {};
+    }
     return buildHoveredCannonCells(payload, hoveredCell);
-  }, [payload, hoveredCell]);
+  }, [payload, hoveredCell, showCannonHoverEnhance]);
+
+  const arrowCells = useMemo(() => {
+    if (!showArrowHints) {
+      return {};
+    }
+    return buildArrowCells(payload);
+  }, [payload, showArrowHints]);
 
   const pendingAutoMessage = useMemo(() => {
     if (!payload) {
@@ -601,39 +830,84 @@ export default function GamePage() {
             highlightedCells={highlightedCells}
             hoveredCellKey={hoveredCellKey}
             hoveredCannonCells={hoveredCannonCells}
+            arrowCells={arrowCells}
+            activePlayer={payload?.current_player ?? null}
             showCoordText={showCoordInsideCell}
-            isBusy={loading || modalStack.length > 0}
+            isBusy={isBoardBusy || modalStack.length > 0 || Boolean(payload?.game_over)}
             onCellClick={handleBoardCellClick}
             onCellHover={handleBoardCellHover}
             onCellLeave={handleBoardCellLeave}
           />
+
+          <div className="danger-actions-panel board-danger-panel">
+            <div className="danger-actions-title">危险操作</div>
+
+            <div className="danger-actions-row">
+              <button
+                className="danger-button"
+                onClick={() =>
+                  openConfirmDialog(
+                    "确认终局",
+                    "是否确认双方同意结束当前对局？\n系统将按当前局面计算胜负。",
+                    "endgame"
+                  )
+                }
+                disabled={initLoading || isSidebarBusy}
+              >
+                协商终局
+              </button>
+
+              <button
+                className="danger-button"
+                onClick={() =>
+                  openConfirmDialog(
+                    "确认投降",
+                    "是否确认当前行动方投降？\n确认后将直接判负。",
+                    "resign"
+                  )
+                }
+                disabled={initLoading || isSidebarBusy}
+              >
+                投降
+              </button>
+            </div>
+
+            <div className="danger-actions-row danger-actions-row-bottom">
+              <button
+                className="danger-button danger-actions-wide"
+                onClick={onBackToMenu}
+                disabled={initLoading || isSidebarBusy}
+              >
+                返回主菜单
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="right-column">
+        <div className={`right-column ${compactSidebar ? "right-column-compact" : ""}`}>
           <div className="panel">
             <div className="section">
               <div><strong>后端状态：</strong>{backendOk ? "已连接" : "未连接"}</div>
               <div>
                 <strong>当前提示：</strong>
                 <span className={statusIsError ? "error" : "ok"}>{statusMessage}</span>
-              </div>
-              <div><strong>加载中：</strong>{loading ? "是" : "否"}</div>
+              </div>              
             </div>
 
             <div className="section button-grid">
-              <button onClick={() => runAction(newGame)} disabled={loading}>开始新对局</button>
+              <button onClick={() => runAction(newGame, "sidebar")} disabled={initLoading || isSidebarBusy}>开始新对局</button>
               <button
                 onClick={() =>
                   openConfirmDialog("确认重开", "是否确认重新开始当前对局？", "restart")
                 }
-                disabled={loading}
+                disabled={initLoading || isSidebarBusy}
               >
                 重开
               </button>
-              <button onClick={() => runAction(undoAction)} disabled={loading}>撤销</button>
-              <button onClick={() => runAction(exportRecord)} disabled={loading}>导出棋谱</button>
-              <button onClick={() => openModal("save-load")} disabled={loading}>存档</button>
-              <button onClick={() => openModal("settings")} disabled={loading}>设置</button>
+              <button onClick={() => runAction(undoAction, "sidebar")} disabled={initLoading || isSidebarBusy}>撤销</button>
+              <button onClick={() => runAction(exportRecord, "sidebar")} disabled={initLoading || isSidebarBusy}>导出棋谱</button>
+              <button onClick={() => openModal("save-load")} disabled={initLoading || isSidebarBusy}>存档</button>
+              <button onClick={() => openModal("settings")} disabled={initLoading || isSidebarBusy}>设置</button>
             </div>
 
             <div className="section">
@@ -667,7 +941,7 @@ export default function GamePage() {
                         "confirm-pending"
                       )
                     }
-                    disabled={loading}
+                    disabled={initLoading || isSidebarBusy}
                     className="pending-auto-button"
                   >
                     确认自动动作
@@ -678,19 +952,59 @@ export default function GamePage() {
 
             {showRecordPanel ? (
               <div className="section">
-                <h2>棋谱</h2>
-                <div className="record-panel">
-                  {payload && payload.history.length > 0 ? (
-                    payload.history.map((line, index) => (
-                      <div key={`${index}-${line}`} className="record-line">
-                        <span className="record-index">{index + 1}.</span>
-                        <span className="record-text">{line}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="record-empty">暂无棋谱</div>
-                  )}
+                <div className="record-header">
+                  <h2>棋谱</h2>
+                  <div className="record-header-actions">
+                    <button
+                      type="button"
+                      onClick={() => setRecordCollapsed((prev) => !prev)}
+                    >
+                      {recordCollapsed ? "展开" : "折叠"}
+                    </button>
+                  </div>
                 </div>
+
+                {!recordCollapsed ? (
+                  <>
+                    <div className="record-panel">
+                      {pagedHistory.length > 0 ? (
+                        pagedHistory.map((line, index) => {
+                          const absoluteIndex = (recordPage - 1) * recordPageSize + index + 1;
+                          return (
+                            <div key={`${absoluteIndex}-${line}`} className="record-line">
+                              <span className="record-index">{absoluteIndex}.</span>
+                              <span className="record-text">{line}</span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="record-empty">暂无棋谱</div>
+                      )}
+                    </div>
+
+                    <div className="record-pagination">
+                      <button
+                        type="button"
+                        onClick={() => setRecordPage((p) => Math.max(1, p - 1))}
+                        disabled={recordPage <= 1}
+                      >
+                        上一页
+                      </button>
+
+                      <span className="record-pagination-text">
+                        第 {recordPage} / {totalRecordPages} 页
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setRecordPage((p) => Math.min(totalRecordPages, p + 1))}
+                        disabled={recordPage >= totalRecordPages}
+                      >
+                        下一页
+                      </button>
+                    </div>
+                  </>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -709,88 +1023,104 @@ export default function GamePage() {
                 <div className="modal-card" onClick={(e) => e.stopPropagation()}>
                   <div className="modal-title">设置</div>
 
-                  <div className="settings-list">
-                    <label className="settings-item">
-                      <input
-                        type="checkbox"
-                        checked={showRecordPanel}
-                        onChange={(e) => setShowRecordPanel(e.target.checked)}
-                      />
-                      显示棋谱
-                    </label>
+                  <div className="settings-group">
+                    <div className="settings-group-title">界面显示</div>
+                    <div className="settings-list">
+                      <label className="settings-item">
+                        <input
+                          type="checkbox"
+                          checked={showRecordPanel}
+                          onChange={(e) => setShowRecordPanel(e.target.checked)}
+                        />
+                        显示棋谱
+                      </label>
 
-                    <label className="settings-item">
-                      <input
-                        type="checkbox"
-                        checked={showCoordInsideCell}
-                        onChange={(e) => setShowCoordInsideCell(e.target.checked)}
-                      />
-                      格内显示坐标
-                    </label>
+                      <label className="settings-item">
+                        <input
+                          type="checkbox"
+                          checked={showCoordInsideCell}
+                          onChange={(e) => setShowCoordInsideCell(e.target.checked)}
+                        />
+                        格内显示坐标
+                      </label>
 
-                    <label className="settings-item">
-                      <input
-                        type="checkbox"
-                        checked={showDropHighlight}
-                        onChange={(e) => setShowDropHighlight(e.target.checked)}
-                      />
-                      显示落子高亮
-                    </label>
-
-                    <label className="settings-item">
-                      <input
-                        type="checkbox"
-                        checked={showEatHighlight}
-                        onChange={(e) => setShowEatHighlight(e.target.checked)}
-                      />
-                      显示吃子高亮
-                    </label>
-
-                    <label className="settings-item">
-                      <input
-                        type="checkbox"
-                        checked={showMuzzleHighlight}
-                        onChange={(e) => setShowMuzzleHighlight(e.target.checked)}
-                      />
-                      显示炮口高亮
-                    </label>
-
-                    <label className="settings-item">
-                      <input
-                        type="checkbox"
-                        checked={showFireHighlight}
-                        onChange={(e) => setShowFireHighlight(e.target.checked)}
-                      />
-                      显示打炮高亮
-                    </label>
+                      <label className="settings-item">
+                        <input
+                          type="checkbox"
+                          checked={compactSidebar}
+                          onChange={(e) => setCompactSidebar(e.target.checked)}
+                        />
+                        右栏紧凑模式
+                      </label>
+                    </div>
                   </div>
 
-                  <div className="settings-danger-group">
-                    <button
-                      className="danger-button"
-                      onClick={() =>
-                        openConfirmDialog(
-                          "确认终局",
-                          "是否确认双方同意结束当前对局？\n系统将按当前局面计算胜负。",
-                          "endgame"
-                        )
-                      }
-                    >
-                      协商终局
-                    </button>
+                  <div className="settings-group">
+                    <div className="settings-group-title">高亮与提示</div>
+                    <div className="settings-list">
+                      <label className="settings-item">
+                        <input
+                          type="checkbox"
+                          checked={showDropHighlight}
+                          onChange={(e) => setShowDropHighlight(e.target.checked)}
+                        />
+                        显示落子 hover 高亮
+                      </label>
 
-                    <button
-                      className="danger-button"
-                      onClick={() =>
-                        openConfirmDialog(
-                          "确认投降",
-                          "是否确认当前行动方投降？\n确认后将直接判负。",
-                          "resign"
-                        )
-                      }
-                    >
-                      投降
-                    </button>
+                      <label className="settings-item">
+                        <input
+                          type="checkbox"
+                          checked={showEatHighlight}
+                          onChange={(e) => setShowEatHighlight(e.target.checked)}
+                        />
+                        显示吃子高亮
+                      </label>
+
+                      <label className="settings-item">
+                        <input
+                          type="checkbox"
+                          checked={showMuzzleHighlight}
+                          onChange={(e) => setShowMuzzleHighlight(e.target.checked)}
+                        />
+                        显示炮口高亮
+                      </label>
+
+                      <label className="settings-item">
+                        <input
+                          type="checkbox"
+                          checked={showFireHighlight}
+                          onChange={(e) => setShowFireHighlight(e.target.checked)}
+                        />
+                        显示打炮高亮
+                      </label>
+
+                      <label className="settings-item">
+                        <input
+                          type="checkbox"
+                          checked={showArrowHints}
+                          onChange={(e) => setShowArrowHints(e.target.checked)}
+                        />
+                        显示炮口方向箭头
+                      </label>
+
+                      <label className="settings-item">
+                        <input
+                          type="checkbox"
+                          checked={showHoverPreview}
+                          onChange={(e) => setShowHoverPreview(e.target.checked)}
+                        />
+                        显示 hover 虚化预览
+                      </label>
+
+                      <label className="settings-item">
+                        <input
+                          type="checkbox"
+                          checked={showCannonHoverEnhance}
+                          onChange={(e) => setShowCannonHoverEnhance(e.target.checked)}
+                        />
+                        显示炮管 hover 增强高亮
+                      </label>
+                    </div>
                   </div>
 
                   <div className="modal-actions">
@@ -810,53 +1140,71 @@ export default function GamePage() {
                 }}
               >
                 <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-                  <div className="modal-title">存档</div>
+                  <div className="modal-title">存档管理</div>
+                  <div className="modal-message">
+                    请选择一个槽位进行保存或读取。
+                  </div>
 
-                  <div className="save-load-grid">
-                    <button
-                      onClick={() =>
-                        openConfirmDialog("确认保存", "是否保存到槽位 1？", "save1")
-                      }
-                    >
-                      保存到槽位 1
-                    </button>
-                    <button
-                      onClick={() =>
-                        openConfirmDialog("确认读取", "是否从槽位 1 读取存档？", "load1")
-                      }
-                    >
-                      从槽位 1 读取
-                    </button>
+                  <div className="save-load-list">
+                    <div className="save-load-row">
+                      <div className="save-load-slot-label">槽位 1</div>
+                      <div className="save-load-row-actions">
+                        <button
+                          onClick={() =>
+                            openConfirmDialog("确认保存", "是否保存到槽位 1？", "save1")
+                          }
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() =>
+                            openConfirmDialog("确认读取", "是否从槽位 1 读取存档？", "load1")
+                          }
+                        >
+                          读取
+                        </button>
+                      </div>
+                    </div>
 
-                    <button
-                      onClick={() =>
-                        openConfirmDialog("确认保存", "是否保存到槽位 2？", "save2")
-                      }
-                    >
-                      保存到槽位 2
-                    </button>
-                    <button
-                      onClick={() =>
-                        openConfirmDialog("确认读取", "是否从槽位 2 读取存档？", "load2")
-                      }
-                    >
-                      从槽位 2 读取
-                    </button>
+                    <div className="save-load-row">
+                      <div className="save-load-slot-label">槽位 2</div>
+                      <div className="save-load-row-actions">
+                        <button
+                          onClick={() =>
+                            openConfirmDialog("确认保存", "是否保存到槽位 2？", "save2")
+                          }
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() =>
+                            openConfirmDialog("确认读取", "是否从槽位 2 读取存档？", "load2")
+                          }
+                        >
+                          读取
+                        </button>
+                      </div>
+                    </div>
 
-                    <button
-                      onClick={() =>
-                        openConfirmDialog("确认保存", "是否保存到槽位 3？", "save3")
-                      }
-                    >
-                      保存到槽位 3
-                    </button>
-                    <button
-                      onClick={() =>
-                        openConfirmDialog("确认读取", "是否从槽位 3 读取存档？", "load3")
-                      }
-                    >
-                      从槽位 3 读取
-                    </button>
+                    <div className="save-load-row">
+                      <div className="save-load-slot-label">槽位 3</div>
+                      <div className="save-load-row-actions">
+                        <button
+                          onClick={() =>
+                            openConfirmDialog("确认保存", "是否保存到槽位 3？", "save3")
+                          }
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() =>
+                            openConfirmDialog("确认读取", "是否从槽位 3 读取存档？", "load3")
+                          }
+                        >
+                          读取
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="modal-actions">
@@ -888,48 +1236,48 @@ export default function GamePage() {
                         closeConfirmDialog();
 
                         if (action === "save1") {
-                          await runAction(() => saveToSlot(1));
+                          await runAction(() => saveToSlot(1), "sidebar");
                           return;
                         }
                         if (action === "save2") {
-                          await runAction(() => saveToSlot(2));
+                          await runAction(() => saveToSlot(2), "sidebar");
                           return;
                         }
                         if (action === "save3") {
-                          await runAction(() => saveToSlot(3));
+                          await runAction(() => saveToSlot(3), "sidebar");
                           return;
                         }
 
                         if (action === "load1") {
-                          await runAction(() => loadFromSlot(1));
+                          await runAction(() => loadFromSlot(1), "sidebar");
                           return;
                         }
                         if (action === "load2") {
-                          await runAction(() => loadFromSlot(2));
+                          await runAction(() => loadFromSlot(2), "sidebar");
                           return;
                         }
                         if (action === "load3") {
-                          await runAction(() => loadFromSlot(3));
+                          await runAction(() => loadFromSlot(3), "sidebar");
                           return;
                         }
 
                         if (action === "restart") {
-                          await runAction(restartGame);
+                          await runAction(restartGame, "sidebar");
                           return;
                         }
 
                         if (action === "confirm-pending") {
-                          await runAction(confirmPending);
+                          await runAction(confirmPending, "sidebar");
                           return;
                         }
 
                         if (action === "endgame") {
-                          await runAction(endGameByAgreement);
+                          await runAction(endGameByAgreement, "sidebar");
                           return;
                         }
 
                         if (action === "resign") {
-                          await runAction(resignGame);
+                          await runAction(resignGame, "sidebar");
                           return;
                         }
                       }}
@@ -945,7 +1293,7 @@ export default function GamePage() {
         {payload?.game_over ? (
           <div className="modal-mask modal-mask-top">
             <div className="modal-card modal-card-gameover" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-title">游戏结束</div>
+              <div className="gameover-badge">对局结束</div>
 
               <div className="gameover-winner">
                 {payload.winner === "R"
@@ -959,7 +1307,18 @@ export default function GamePage() {
                 结束原因：{payload.game_over_reason ?? "未知"}
               </div>
 
-              <div className="modal-actions">
+              <div className="gameover-summary">
+                <div className="gameover-summary-item">
+                  <span>总回合</span>
+                  <strong>{payload.turn_number}</strong>
+                </div>
+                <div className="gameover-summary-item">
+                  <span>棋谱条目</span>
+                  <strong>{payload.history.length}</strong>
+                </div>
+              </div>
+
+              <div className="modal-actions gameover-actions">
                 <button
                   onClick={() =>
                     openConfirmDialog("确认重开", "是否确认重新开始当前对局？", "restart")
@@ -968,7 +1327,10 @@ export default function GamePage() {
                   重开
                 </button>
                 <button onClick={() => openModal("save-load")}>存档</button>
-                <button onClick={() => runAction(exportRecord)}>导出棋谱</button>
+                <button onClick={() => runAction(exportRecord, "sidebar")}>导出棋谱</button>
+                <button className="danger-button" onClick={onBackToMenu}>
+                  返回主菜单
+                </button>
               </div>
             </div>
           </div>

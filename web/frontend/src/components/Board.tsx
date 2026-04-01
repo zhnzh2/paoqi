@@ -13,6 +13,8 @@ type BoardProps = {
   highlightedCells: Record<string, HighlightType>;
   hoveredCellKey: string | null;
   hoveredCannonCells: Record<string, true>;
+  arrowCells: Record<string, string>;
+  activePlayer: "R" | "B" | null;
   showCoordText: boolean;
   isBusy: boolean;
   onCellClick: (x: number, y: number) => void | Promise<void>;
@@ -34,6 +36,8 @@ export default function Board({
   highlightedCells,
   hoveredCellKey,
   hoveredCannonCells,
+  arrowCells,
+  activePlayer,
   showCoordText,
   isBusy,
   onCellClick,
@@ -68,9 +72,9 @@ export default function Board({
                 const y = rowIndex + 1;
                 const key = makeCellKey(x, y);
                 const highlightType = highlightedCells[key] ?? null;
-                const previewPiece =
-                  previewBoardData[rowIndex]?.[colIndex] ?? null;
+                const previewPiece = previewBoardData[rowIndex]?.[colIndex] ?? null;
                 const isCannonHovered = Boolean(hoveredCannonCells[key]);
+                const arrowText = arrowCells[key] ?? null;
 
                 return (
                   <Cell
@@ -85,6 +89,8 @@ export default function Board({
                     isHighlighted={highlightType !== null}
                     isHovered={hoveredCellKey === key || isCannonHovered}
                     highlightType={highlightType}
+                    activePlayer={activePlayer}
+                    arrowText={arrowText}
                     onClick={onCellClick}
                     onHover={onCellHover}
                     onLeave={onCellLeave}

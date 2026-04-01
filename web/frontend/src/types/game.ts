@@ -36,6 +36,7 @@ export type ApiSuccess<T = any> = {
   result?: any;
   path?: string;
   history?: string[];
+  preview_snapshot?: any;
 };
 
 export type ApiFailure = {

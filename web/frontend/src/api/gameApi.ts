@@ -39,6 +39,13 @@ export async function applyAction(action: GameAction): Promise<ApiResponse<GameP
   });
 }
 
+export async function previewAction(action: GameAction): Promise<ApiResponse<any>> {
+  return request<any>("/preview-action", {
+    method: "POST",
+    body: JSON.stringify({ action })
+  });
+}
+
 export async function confirmPending(): Promise<ApiResponse<GamePayload>> {
   return request<GamePayload>("/confirm-pending", {
     method: "POST"
@@ -83,6 +90,12 @@ export async function loadFromSlot(slot: number): Promise<ApiResponse<GamePayloa
 
 export async function exportRecord(): Promise<ApiResponse<GamePayload>> {
   return request<GamePayload>("/export-record", {
+    method: "GET"
+  });
+}
+
+export async function getSaveSlots(): Promise<ApiResponse<any>> {
+  return request<any>("/save-slots", {
     method: "GET"
   });
 }
