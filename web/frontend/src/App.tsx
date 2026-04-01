@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getSaveSlots } from "./api/gameApi";
 import GamePage from "./pages/GamePage";
+import MenuPage from "./components/menu/MenuPage";
 
 type MenuMeta = {
   can_continue: boolean;
@@ -34,52 +35,24 @@ export default function App() {
   useEffect(() => {
     refreshMenuMeta();
   }, []);
-
   if (appMode === "menu") {
-    const hasAnySave = Boolean(menuMeta?.slots?.some((slot) => slot.exists));
-    const canContinue = Boolean(menuMeta?.can_continue);
-
     return (
-      <div className="menu-page">
-        <div className="menu-card">
-          <div className="menu-title">炮棋</div>
-          <div className="menu-subtitle">Web 单机版原型</div>
-
-          <div className="menu-actions">
-            <button
-              className="menu-button menu-button-primary"
-              onClick={() => {
-                setOpenLoadOnEnter(false);
-                setAppMode("game");
-              }}
-            >
-              开始游戏
-            </button>
-
-            <button
-              className="menu-button menu-button-secordary"
-              disabled={menuLoading || !canContinue}
-              onClick={() => {
-                setOpenLoadOnEnter(false);
-                setAppMode("game");
-              }}
-            >
-              继续对局
-            </button>
-
-            <button
-              className="menu-button menu-button-secordary"
-              disabled={menuLoading || !hasAnySave}
-              onClick={() => {
-                setOpenLoadOnEnter(true);
-                setAppMode("game");
-              }}
-            >
-              读取存档
-            </button>
-          </div>
-        </div>
-      </div>
+      <MenuPage
+        menuMeta={menuMeta}
+        menuLoading={menuLoading}
+        onStartGame={() => {
+          setOpenLoadOnEnter(false);
+          setAppMode("game");
+        }}
+        onContinueGame={() => {
+          setOpenLoadOnEnter(false);
+          setAppMode("game");
+        }}
+        onLoadGame={() => {
+          setOpenLoadOnEnter(true);
+          setAppMode("game");
+        }}
+      />
     );
   }
 
