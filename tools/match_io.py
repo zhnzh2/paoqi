@@ -4,7 +4,6 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-
 def save_match_result(
     result: dict,
     folder: str = "match_logs",

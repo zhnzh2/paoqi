@@ -20,7 +20,6 @@ def copy_board_grid(board_grid: list[list[Piece | None]]) -> list[list[Piece | N
 
     return copied
 
-
 def copy_cannon(cannon: Cannon) -> Cannon:
     copied = Cannon(
         color=cannon.color,
@@ -30,7 +29,6 @@ def copy_cannon(cannon: Cannon) -> Cannon:
     )
     copied.mouth = cannon.mouth
     return copied
-
 
 def copy_cannon_list(cannons: List[Cannon]) -> List[Cannon]:
     return [copy_cannon(c) for c in cannons]
@@ -62,7 +60,6 @@ def snapshot_state(game) -> dict:
         "chain_pass_count": game.chain_pass_count,
         "cannon_record_style": game.cannon_record_style,
     }
-
 
 def restore_state(game, snapshot: dict) -> None:
     game.board.grid = snapshot["board_grid"]

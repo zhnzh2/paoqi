@@ -4,7 +4,6 @@ from typing import Any
 
 from core.game import Game
 
-
 def build_game_payload(game: Game) -> dict[str, Any]:
     return {
         "snapshot": game.get_state_snapshot(),
@@ -23,7 +22,6 @@ def build_game_payload(game: Game) -> dict[str, Any]:
         "phase": game.phase,
     }
 
-
 def build_ok_response(
     game: Game,
     message: str = "ok",
@@ -37,7 +35,6 @@ def build_ok_response(
     if extra:
         data.update(extra)
     return data
-
 
 def build_error_response(message: str) -> dict[str, Any]:
     return {

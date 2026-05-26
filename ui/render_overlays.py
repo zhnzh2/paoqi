@@ -16,7 +16,6 @@ from ui.render_common import (
     font_h,
 )
 
-
 def draw_record_panel(
     surface: pygame.Surface,
     history: list[str],
@@ -82,7 +81,6 @@ def draw_record_panel(
 
     return rects
 
-
 def draw_confirm_modal(
     surface: pygame.Surface,
     title: str,
@@ -139,7 +137,6 @@ def draw_confirm_modal(
     rects["cancel"] = cancel_rect
     rects["confirm"] = confirm_rect
     return rects
-
 
 def draw_settings_panel(
     surface: pygame.Surface,
@@ -219,7 +216,6 @@ def draw_settings_panel(
 
     return rects
 
-
 def draw_slot_panel(
     surface: pygame.Surface,
     title: str,
@@ -271,7 +267,6 @@ def draw_slot_panel(
         rects[key] = rect
 
     return rects
-
 
 def draw_main_menu(
     surface: pygame.Surface,
@@ -347,7 +342,6 @@ def draw_main_menu(
         )
 
     return rects
-
 
 def draw_game_over_overlay(
     surface: pygame.Surface,

@@ -9,7 +9,6 @@ from ui.controller import (
     find_muzzle_actions_by_endpoint,
 )
 
-
 def compute_preview_board_data(
     game: Game,
     legal_actions: list[dict],

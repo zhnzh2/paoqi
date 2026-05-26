@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import pygame
 
-
 def _clicked_outside_panel(
     overlay_button_rects: dict[str, pygame.Rect],
     panel_key: str,
@@ -12,7 +11,6 @@ def _clicked_outside_panel(
 ) -> bool:
     panel_rect = overlay_button_rects.get(panel_key)
     return panel_rect is not None and not panel_rect.collidepoint(mx, my)
-
 
 def handle_confirm_overlay_click(
     mx: int,
@@ -33,7 +31,6 @@ def handle_confirm_overlay_click(
         return True, None
 
     return False, None
-
 
 def handle_record_panel_click(
     mx: int,
@@ -58,7 +55,6 @@ def handle_record_panel_click(
 
     return False, record_scroll, False
 
-
 def handle_slot_panel_click(
     mx: int,
     my: int,
@@ -82,7 +78,6 @@ def handle_slot_panel_click(
         return True, None
 
     return False, None
-
 
 def handle_settings_panel_click(
     mx: int,
@@ -115,7 +110,6 @@ def handle_settings_panel_click(
         return True, None
 
     return False, None
-
 
 def handle_game_over_overlay_click(
     mx: int,

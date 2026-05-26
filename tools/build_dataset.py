@@ -4,11 +4,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 def load_json(path: Path) -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
-
 
 def collect_match_files(folder: str) -> list[Path]:
     return sorted(Path(folder).rglob("*.json"))
@@ -113,14 +111,12 @@ def build_dataset_from_folder(
 
     return dataset
 
-
 def save_dataset(dataset: list[dict], output_path: str) -> None:
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(dataset, f, ensure_ascii=False, indent=2)
-
 
 def main() -> None:
     folder = "match_logs"
@@ -135,7 +131,6 @@ def main() -> None:
 
     print(f"已收集样本数：{len(dataset)}")
     print(f"已保存到：{output_path}")
-
 
 if __name__ == "__main__":
     main()

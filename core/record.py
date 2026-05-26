@@ -6,15 +6,12 @@ from typing import List
 from core.board import Position
 from core.models import Cannon
 
-
 def player_name(color: str) -> str:
     return "红方" if color == "R" else "蓝方"
-
 
 def format_pos(pos: Position) -> str:
     x, y = pos
     return f"({x}, {y})"
-
 
 def mouth_text(mouth: str) -> str:
     mapping = {
@@ -24,7 +21,6 @@ def mouth_text(mouth: str) -> str:
         "D": "下",
     }
     return mapping.get(mouth, mouth)
-
 
 def cannon_direction_text(direction: str) -> str:
     mapping = {
@@ -36,7 +32,6 @@ def cannon_direction_text(direction: str) -> str:
 def format_cannon_positions_for_record(cannon: Cannon) -> str:
     pos_texts = [format_pos(pos) for pos in cannon.positions]
     return "[" + ", ".join(pos_texts) + "]"
-
 
 def format_cannon_tuple_record(cannon: Cannon) -> str:
     k = cannon.level
@@ -51,7 +46,6 @@ def format_cannon_tuple_record(cannon: Cannon) -> str:
 
     return f"({k}, {n}, {a_text}, {dir_text}, {mouth_name})"
 
-
 def format_cannon_for_record(cannon: Cannon, style: int) -> str:
     if style == 1:
         return cannon.short()
@@ -60,7 +54,6 @@ def format_cannon_for_record(cannon: Cannon, style: int) -> str:
         return format_cannon_tuple_record(cannon)
 
     return cannon.short()
-
 
 def format_cannon_with_mouth_for_record(cannon: Cannon, style: int) -> str:
     base = format_cannon_for_record(cannon, style)
@@ -82,7 +75,6 @@ def history_text(history: List[str]) -> str:
         lines.append(f"  {i}. {item}")
     return "\n".join(lines)
 
-
 def debug_text(debug_log: List[str]) -> str:
     if not debug_log:
         return "当前还没有调试日志。"
@@ -91,7 +83,6 @@ def debug_text(debug_log: List[str]) -> str:
     for i, item in enumerate(debug_log, start=1):
         lines.append(f"  {i}. {item}")
     return "\n".join(lines)
-
 
 def fire_report_text(last_fire_report_lines: List[str]) -> str:
     if not last_fire_report_lines:

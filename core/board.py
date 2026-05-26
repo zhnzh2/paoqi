@@ -5,9 +5,7 @@ from typing import List, Optional, Tuple
 
 from core.models import Piece
 
-
 Position = Tuple[int, int]  # (x, y), both 1-based
-
 
 class Board:
     SIZE = 9

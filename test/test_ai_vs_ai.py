@@ -114,7 +114,6 @@ def run_one_game(red_depth, blue_depth, max_steps, verbose: bool):
         "training_samples": training_samples,
     }
 
-
 def run_series(n, red_depth, blue_depth, max_steps):
     red_win = 0
     blue_win = 0
@@ -166,7 +165,6 @@ def run_series(n, red_depth, blue_depth, max_steps):
     print(f"平局/未分胜负：{draw}")
     print(f"红方胜率：{red_win / n:.2%}")
     print(f"蓝方胜率：{blue_win / n:.2%}")
-
 
 if __name__ == "__main__":
     run_series(n=10, red_depth=3, blue_depth=2, max_steps=500)

@@ -1,6 +1,5 @@
 from core.game import Game
 
-
 def _reach_pending_auto_action() -> Game:
     game = Game()
 
@@ -14,7 +13,6 @@ def _reach_pending_auto_action() -> Game:
 
     raise AssertionError("did not reach a pending auto action")
 
-
 def test_undo_clears_pending_auto_action_created_by_reverted_move() -> None:
     game = _reach_pending_auto_action()
 
@@ -24,7 +22,6 @@ def test_undo_clears_pending_auto_action_created_by_reverted_move() -> None:
     assert game.pending_auto_action is None
     assert game.pending_auto_message == ""
     assert all(game.is_action_legal(action) for action in game.get_legal_actions())
-
 
 def test_undo_confirmed_pending_auto_action_restores_confirmation_state() -> None:
     game = _reach_pending_auto_action()
@@ -37,7 +34,6 @@ def test_undo_confirmed_pending_auto_action_restores_confirmation_state() -> Non
 
     assert game.pending_auto_action == pending
     assert game.pending_auto_message == pending_message
-
 
 def test_export_import_preserves_terminal_reason_and_pending_auto_action() -> None:
     finished = Game()

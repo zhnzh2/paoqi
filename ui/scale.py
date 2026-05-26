@@ -13,7 +13,6 @@ from ui.constants import (
     LOGICAL_HEIGHT,
 )
 
-
 class UIScaler:
     def __init__(self) -> None:
         self.sx = LOGICAL_WIDTH / DESIGN_WIDTH
@@ -37,6 +36,5 @@ class UIScaler:
 
     def font(self, name: str, size: int, bold: bool = False) -> pygame.font.Font:
         return pygame.font.SysFont(name, self.u(size), bold=bold)
-
 
 ui = UIScaler()

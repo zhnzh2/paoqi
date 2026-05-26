@@ -9,7 +9,6 @@ from ui.controller import (
     find_muzzle_actions_by_endpoint,
 )
 
-
 def execute_action(game: Game, action: dict) -> tuple[str, bool]:
     result = game.try_apply_action_with_snapshot(action)
     if result["ok"]:
@@ -21,7 +20,6 @@ def execute_action(game: Game, action: dict) -> tuple[str, bool]:
 
     return f"操作失败：{result['message']}", True
 
-
 def handle_pending_auto_action_click(game: Game) -> tuple[bool, str, bool]:
     if not game.has_pending_auto_action():
         return False, "", False
@@ -32,7 +30,6 @@ def handle_pending_auto_action_click(game: Game) -> tuple[bool, str, bool]:
 
     message, is_error = execute_action(game, pending)
     return True, message, is_error
-
 
 def handle_board_phase_click(
     game: Game,

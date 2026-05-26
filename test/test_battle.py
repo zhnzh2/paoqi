@@ -1,7 +1,6 @@
 from core.game import Game
 from core.AI import AlphaBetaAgent, RandomAgent
 
-
 def run_ai_vs_random(max_steps: int = 1000):
     game = Game()
 
@@ -33,7 +32,6 @@ def run_ai_vs_random(max_steps: int = 1000):
     print("胜者：", game.get_winner())
     print(game.board.render())
     print(game.history_text())
-
 
 if __name__ == "__main__":
     run_ai_vs_random()

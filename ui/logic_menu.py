@@ -4,17 +4,14 @@ from __future__ import annotations
 from core.game import Game
 from ui.save_io import load_game_from_file
 
-
 def make_quit_confirm_dialog() -> dict[str, str]:
     return {
         "title": "确认退出",
         "message": "是否确认退出游戏？",
     }
 
-
 def start_new_game_session() -> tuple[Game, str]:
     return Game(), "已开始新对局。"
-
 
 def load_game_from_slot(
     save_slot_files: dict[int, str],

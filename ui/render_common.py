@@ -27,16 +27,13 @@ def draw_text(
     img = font.render(text, True, color)
     surface.blit(img, (x, y))
 
-
 def font_h(font: pygame.font.Font) -> int:
     return font.get_height()
-
 
 def text_block_h(font: pygame.font.Font, lines: int = 1, gap: int = 0) -> int:
     if lines <= 0:
         return 0
     return lines * font_h(font) + (lines - 1) * gap
-
 
 def visible_line_count(text: str, max_lines: int | None = None) -> int:
     lines = text.splitlines() if text else [""]
@@ -45,7 +42,6 @@ def visible_line_count(text: str, max_lines: int | None = None) -> int:
         count = min(count, max_lines)
     return max(1, count)
 
-
 def multiline_block_height(
     text: str,
     font: pygame.font.Font,
@@ -53,7 +49,6 @@ def multiline_block_height(
     max_lines: int | None = None,
 ) -> int:
     return text_block_h(font, visible_line_count(text, max_lines=max_lines), line_gap)
-
 
 def draw_multiline_text(
     surface: pygame.Surface,
@@ -74,7 +69,6 @@ def draw_multiline_text(
         draw_text(surface, line, font, color, x, yy)
         yy += font_h(font) + line_gap
 
-
 def draw_button(
     surface: pygame.Surface,
     text: str,
@@ -90,7 +84,6 @@ def draw_button(
     txt = fonts["small"].render(text, True, BUTTON_TEXT)
     txt_rect = txt.get_rect(center=rect.center)
     surface.blit(txt, txt_rect)
-
 
 def draw_danger_button(
     surface: pygame.Surface,
@@ -108,7 +101,6 @@ def draw_danger_button(
     txt = fonts["small"].render(text, True, DANGER_BUTTON_TEXT)
     txt_rect = txt.get_rect(center=rect.center)
     surface.blit(txt, txt_rect)
-
 
 def draw_card_panel(
     surface: pygame.Surface,

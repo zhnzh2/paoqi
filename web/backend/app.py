@@ -20,7 +20,6 @@ from web.backend.adapters import (
 from web.backend.schemas import ActionRequest
 from web.backend.session_store import LocalGameSession
 
-
 BASE_DIR = Path(__file__).resolve().parents[2]
 SAVE_DIR = BASE_DIR / "saves"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
@@ -53,12 +52,10 @@ app.add_middleware(
 
 session = LocalGameSession()
 
-
 def get_session_id(
     x_paoqi_session_id: str | None = Header(default=None, alias="X-Paoqi-Session-Id"),
 ) -> str | None:
     return x_paoqi_session_id
-
 
 @app.get("/api/health")
 def health_check() -> dict:
@@ -67,18 +64,15 @@ def health_check() -> dict:
         "message": "backend is running",
     }
 
-
 @app.post("/api/new-game")
 def new_game(session_id: str | None = Depends(get_session_id)) -> dict:
     game = session.reset(session_id)
     return build_ok_response(game, message="已开始新对局。")
 
-
 @app.get("/api/state")
 def get_state(session_id: str | None = Depends(get_session_id)) -> dict:
     game = session.get_game(session_id)
     return build_ok_response(game)
-
 
 @app.post("/api/apply-action")
 def apply_action(req: ActionRequest, session_id: str | None = Depends(get_session_id)) -> dict:
@@ -142,13 +136,11 @@ def confirm_pending_action(session_id: str | None = Depends(get_session_id)) -> 
         },
     )
 
-
 @app.post("/api/restart")
 def restart_game(session_id: str | None = Depends(get_session_id)) -> dict:
     game = Game()
     session.set_game(game, session_id)
     return build_ok_response(game, message="已重新开始对局。")
-
 
 @app.post("/api/undo")
 def undo_action(session_id: str | None = Depends(get_session_id)) -> dict:
@@ -169,7 +161,6 @@ def finish_by_agreement(session_id: str | None = Depends(get_session_id)) -> dic
         return build_ok_response(game, message="已确认终局。")
     except Exception as e:
         return build_error_response(f"终局失败：{e}")
-
 
 @app.post("/api/resign")
 def resign_game(session_id: str | None = Depends(get_session_id)) -> dict:
@@ -194,7 +185,6 @@ def save_to_slot(slot: int, session_id: str | None = Depends(get_session_id)) ->
     except Exception as e:
         return build_error_response(f"保存失败：{e}")
 
-
 @app.post("/api/load/{slot}")
 def load_from_slot(slot: int, session_id: str | None = Depends(get_session_id)) -> dict:
     if slot not in SAVE_SLOT_FILES:
@@ -206,7 +196,6 @@ def load_from_slot(slot: int, session_id: str | None = Depends(get_session_id)) 
         return build_ok_response(game, message=f"已从槽位 {slot} 载入对局。")
     except Exception as e:
         return build_error_response(f"读档失败：{e}")
-
 
 @app.get("/api/export-record")
 def export_record(session_id: str | None = Depends(get_session_id)) -> dict:

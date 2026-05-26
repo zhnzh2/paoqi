@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import List
 
-
 def remove_contained_old_cannons_impl(self, new_cannon) -> None:
     from core.cannon import cannon_contains
 
@@ -19,7 +18,6 @@ def remove_contained_old_cannons_impl(self, new_cannon) -> None:
 
     self.fire_cannon_pool = remaining
 
-
 def get_all_cannons_impl(self) -> list:
     from core.cannon import find_all_cannons
 
@@ -29,7 +27,6 @@ def get_all_cannons_impl(self) -> list:
         self._apply_saved_mouth_to_cannon(cannon)
 
     return cannons
-
 
 def apply_saved_mouth_to_cannon_impl(self, cannon):
     from core.cannon import cannon_signature
@@ -47,7 +44,6 @@ def apply_saved_mouth_to_cannon_impl(self, cannon):
 
     return cannon
 
-
 def initialize_fire_cannon_pool_impl(self) -> None:
     self.fire_cannon_pool = []
 
@@ -55,10 +51,8 @@ def initialize_fire_cannon_pool_impl(self) -> None:
         if cannon.mouth is not None:
             self.fire_cannon_pool.append(cannon)
 
-
 def get_cannons_by_color_impl(self, color: str) -> list:
     return [c for c in self.get_all_cannons() if c.color == color]
-
 
 def assign_muzzles_for_new_cannons_impl(self) -> None:
     from core.cannon import auto_determine_mouth, cannon_signature
@@ -83,7 +77,6 @@ def assign_muzzles_for_new_cannons_impl(self) -> None:
 
     self.record_new_cannons(auto_resolved_cannons)
 
-
 def add_waiting_new_cannons_to_pool_impl(self) -> None:
     from core.cannon import cannon_signature
 
@@ -105,7 +98,6 @@ def add_waiting_new_cannons_to_pool_impl(self) -> None:
             )
 
     self.waiting_new_pool_cannons = []
-
 
 def set_cannon_mouth_impl(self, index: int, direction_text: str) -> None:
     from core.cannon import cannon_signature
@@ -164,18 +156,14 @@ def set_cannon_mouth_impl(self, index: int, direction_text: str) -> None:
         self._record_phase_change_event()
         self.advance_turn()
 
-
 def all_pending_muzzles_set_impl(self) -> bool:
     return all(c.mouth is not None for c in self.pending_muzzle_cannons)
-
 
 def clear_pending_muzzles_impl(self) -> None:
     self.pending_muzzle_cannons = []
 
-
 def get_phase_relevant_cannons_impl(self) -> list:
     return self.get_cannons_by_color(self.current_player)
-
 
 def get_fireable_cannons_impl(self) -> list:
     return self.fire_cannon_pool.copy()

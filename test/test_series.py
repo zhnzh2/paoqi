@@ -2,7 +2,6 @@
 from core.game import Game
 from core.AI import AlphaBetaAgent, RandomAgent
 
-
 def run_one_game(red_depth: int = 2, max_steps: int = 300):
     game = Game()
 
@@ -30,7 +29,6 @@ def run_one_game(red_depth: int = 2, max_steps: int = 300):
         "terminal": game.is_terminal(),
         "final_board": game.board.render(),
     }
-
 
 def run_series(n: int, red_depth: int, max_steps: int = 300):
     red_win = 0
@@ -60,7 +58,6 @@ def run_series(n: int, red_depth: int, max_steps: int = 300):
     print(f"蓝方随机胜：{blue_win}")
     print(f"平局/未分胜负：{draw}")
     print(f"红方AI胜率：{red_win / n:.2%}")
-
 
 if __name__ == "__main__":
     run_series(n=100, red_depth=2, max_steps=300)

@@ -6,9 +6,7 @@ from typing import List, Tuple
 from core.board import Board, Position
 from core.models import Cannon, Piece
 
-
 Position = Tuple[int, int]
-
 
 def _scan_line_for_cannons(cells: List[Tuple[Position, Piece | None]], direction: str) -> List[Cannon]:
     """
@@ -56,7 +54,6 @@ def _scan_line_for_cannons(cells: List[Tuple[Position, Piece | None]], direction
 
     return result
 
-
 def find_all_cannons(board: Board) -> List[Cannon]:
     """
     扫描整个棋盘，返回当前所有炮管。
@@ -78,7 +75,6 @@ def find_all_cannons(board: Board) -> List[Cannon]:
         result.extend(_scan_line_for_cannons(cells, "V"))
 
     return result
-
 
 def find_cannons_by_color(board: Board, color: str) -> List[Cannon]:
     return [c for c in find_all_cannons(board) if c.color == color]
@@ -166,7 +162,6 @@ def cannon_positions_from_mouth(cannon: Cannon) -> List[Position]:
         positions.reverse()
 
     return positions
-
 
 def front_positions(board: Board, cannon: Cannon) -> List[Position]:
     n = cannon.length

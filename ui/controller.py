@@ -54,7 +54,6 @@ def find_drop_action_by_cell(legal_actions: list[dict[str, Any]], x: int, y: int
             return action
     return None
 
-
 def get_legal_cell_highlights(legal_actions: list[dict[str, Any]]) -> dict[tuple[int, int], str]:
     """
     返回每个格子的高亮类型：
@@ -134,7 +133,6 @@ def find_eat_action_by_cell(
             return action
     return None
 
-
 def find_fire_actions_by_cell(
     legal_actions: list[dict[str, Any]],
     x: int,
@@ -160,7 +158,6 @@ def find_fire_actions_by_cell(
 
     return result
 
-
 def get_hovered_drop_highlights(
     legal_actions: list[dict[str, Any]],
     hovered_cell: tuple[int, int] | None,
@@ -178,7 +175,6 @@ def get_hovered_drop_highlights(
         return {}
 
     return {(x, y): mode}
-
 
 def get_hovered_eat_cells(
     legal_actions: list[dict[str, Any]],

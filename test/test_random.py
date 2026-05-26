@@ -1,7 +1,6 @@
 from core.game import Game
 from core.AI import RandomAgent
 
-
 def run_one_random_game(max_steps: int = 300):
     game = Game()
 
@@ -29,7 +28,6 @@ def run_one_random_game(max_steps: int = 300):
         "terminal": game.is_terminal(),
         "final_board": game.board.render(),
     }
-
 
 def run_random_series(n: int = 500, max_steps: int = 300):
     red_win = 0
@@ -61,7 +59,6 @@ def run_random_series(n: int = 500, max_steps: int = 300):
     print(f"平局/未分胜负：{draw}")
     print(f"红方随机胜率：{red_win / n:.2%}")
     print(f"蓝方随机胜率：{blue_win / n:.2%}")
-
 
 if __name__ == "__main__":
     run_random_series(n=500, max_steps=300)

@@ -16,7 +16,6 @@ def signed_value(piece: Piece | None, firing_color: str) -> int:
 
     return -piece.level
 
-
 def piece_from_signed_value(
     value: int,
     firing_color: str,

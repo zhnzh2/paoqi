@@ -19,7 +19,6 @@ def aa_filled_circle(
     pygame.gfxdraw.filled_circle(surface, x, y, radius, color)
     pygame.gfxdraw.aacircle(surface, x, y, radius, color)
 
-
 def aa_circle_outline(
     surface: pygame.Surface,
     x: int,

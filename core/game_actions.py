@@ -3,12 +3,10 @@ from __future__ import annotations
 
 from typing import Any
 
-
 def apply_move_action_impl(self, action: dict[str, Any]) -> None:
     x = action["x"]
     y = action["y"]
     self.apply_move_at(x, y)
-
 
 def apply_move_at_impl(self, x: int, y: int) -> None:
     from core.cannon import detect_new_cannons
@@ -67,34 +65,27 @@ def apply_move_at_impl(self, x: int, y: int) -> None:
 
     self.advance_turn()
 
-
 def apply_muzzle_choice_impl(self, index: int, direction: str) -> None:
     self.set_cannon_mouth(index, direction)
-
 
 def apply_fire_choice_impl(self, index: int) -> None:
     self.fire_cannon_by_index(index)
 
-
 def apply_eat_choice_impl(self, index: int) -> None:
     self.eat_target_by_index(index)
-
 
 def apply_muzzle_action_impl(self, action: dict[str, Any]) -> None:
     index = action["index"]
     direction = action["direction"]
     self.apply_muzzle_choice(index, direction)
 
-
 def apply_fire_action_impl(self, action: dict[str, Any]) -> None:
     index = action["index"]
     self.apply_fire_choice(index)
 
-
 def apply_eat_action_impl(self, action: dict[str, Any]) -> None:
     index = action["index"]
     self.apply_eat_choice(index)
-
 
 def dispatch_action_impl(self, action: dict[str, Any]) -> None:
     action_type = action["type"]
@@ -117,7 +108,6 @@ def dispatch_action_impl(self, action: dict[str, Any]) -> None:
 
     raise ValueError(f"未知动作类型：{action_type}")
 
-
 def apply_action_impl(self, action: dict[str, Any]) -> None:
     if self.game_over:
         raise ValueError("游戏已结束，不能继续操作。")
@@ -138,14 +128,12 @@ def apply_action_impl(self, action: dict[str, Any]) -> None:
     if self.pending_auto_action is previous_pending_auto_action:
         self.clear_pending_auto_action()
 
-
 def try_apply_action_impl(self, action: dict[str, Any]) -> tuple[bool, str]:
     try:
         self.apply_action(action)
         return True, "ok"
     except Exception as e:
         return False, str(e)
-
 
 def apply_action_with_snapshot_impl(
     self,
@@ -164,7 +152,6 @@ def apply_action_with_snapshot_impl(
         "after": after,
     }
 
-
 def try_apply_action_with_snapshot_impl(
     self,
     action: dict[str, Any],
@@ -182,7 +169,6 @@ def try_apply_action_with_snapshot_impl(
             "message": str(e),
             "result": None,
         }
-
 
 def apply_single_legal_action_impl(self) -> dict[str, Any]:
     action = self.get_single_legal_action()

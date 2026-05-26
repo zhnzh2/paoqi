@@ -5,11 +5,9 @@ import json
 from collections import Counter
 from pathlib import Path
 
-
 def load_dataset(path: str) -> list[dict]:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
-
 
 def inspect_dataset(path: str) -> None:
     data = load_dataset(path)
@@ -63,7 +61,6 @@ def inspect_dataset(path: str) -> None:
     for key, value in action_code_counter.most_common(20):
         print(f"{key}: {value}")
     print()
-
 
 if __name__ == "__main__":
     inspect_dataset("datasets/training_dataset_v2.json")

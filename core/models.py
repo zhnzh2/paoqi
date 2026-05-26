@@ -2,7 +2,6 @@
 from dataclasses import dataclass
 from typing import Tuple
 
-
 @dataclass
 class Piece:
     color: str   # "R" or "B"
@@ -10,7 +9,6 @@ class Piece:
 
     def short(self) -> str:
         return f"{self.color}{self.level}"
-
 
 @dataclass
 class Cannon:

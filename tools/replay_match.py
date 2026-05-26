@@ -3,11 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 def load_match(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
-
 
 def print_match_summary(data: dict) -> None:
     print("=== 对局信息 ===")
@@ -26,12 +24,10 @@ def print_match_summary(data: dict) -> None:
 
     print()
 
-
 def print_final_board(data: dict) -> None:
     print("=== 终局棋盘 ===")
     print(data.get("final_board", ""))
     print()
-
 
 def print_history(data: dict) -> None:
     print("=== 完整棋谱 ===")
@@ -95,7 +91,6 @@ def replay_match(path: str) -> None:
     print_action_log(data)
     print_training_samples_preview(data)
     print_history(data)
-
 
 if __name__ == "__main__":
     replay_match("match_logs/ai_vs_greedy/ai_vs_greedy_20260325_020437_139611.json")

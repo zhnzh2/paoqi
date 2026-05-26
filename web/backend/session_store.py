@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from core.game import Game
 
-
 class LocalGameSession:
     DEFAULT_SESSION_ID = "default"
 

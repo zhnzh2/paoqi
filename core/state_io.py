@@ -11,14 +11,11 @@ from core.record import format_cannon_for_record, player_name
 if TYPE_CHECKING:
     from core.game import Game
 
-
 def phase_code(game: "Game") -> str:
     return game.phase
 
-
 def winner_code(game: "Game") -> str | None:
     return game.winner
-
 
 def serialize_piece_at(game: "Game", x: int, y: int) -> dict[str, Any] | None:
     piece = game.board.get(x, y)
@@ -31,14 +28,12 @@ def serialize_piece_at(game: "Game", x: int, y: int) -> dict[str, Any] | None:
         "short": piece.short(),
     }
 
-
 def serialize_position(pos: tuple[int, int]) -> dict[str, int]:
     x, y = pos
     return {
         "x": x,
         "y": y,
     }
-
 
 def serialize_cannon(game: "Game", cannon: Cannon) -> dict[str, Any]:
     return {
@@ -56,7 +51,6 @@ def serialize_cannon(game: "Game", cannon: Cannon) -> dict[str, Any]:
         "record_text": format_cannon_for_record(cannon, game.cannon_record_style),
     }
 
-
 def get_board_snapshot(game: "Game") -> list[list[dict[str, Any] | None]]:
     rows: list[list[dict[str, Any] | None]] = []
 
@@ -70,10 +64,8 @@ def get_board_snapshot(game: "Game") -> list[list[dict[str, Any] | None]]:
 
     return rows
 
-
 def get_cannon_snapshot(game: "Game", cannons: list[Cannon]) -> list[dict[str, Any]]:
     return [serialize_cannon(game, cannon) for cannon in cannons]
-
 
 def get_all_cannons_snapshot(game: "Game") -> dict[str, list[dict[str, Any]]]:
     red_cannons = game.get_cannons_by_color("R")
@@ -83,7 +75,6 @@ def get_all_cannons_snapshot(game: "Game") -> dict[str, list[dict[str, Any]]]:
         "R": get_cannon_snapshot(game, red_cannons),
         "B": get_cannon_snapshot(game, blue_cannons),
     }
-
 
 def get_phase_snapshot(game: "Game") -> dict[str, Any]:
     return {
@@ -98,7 +89,6 @@ def get_phase_snapshot(game: "Game") -> dict[str, Any]:
         "game_over": game.game_over,
         "winner": winner_code(game),
     }
-
 
 def get_interaction_snapshot(game: "Game") -> dict[str, Any]:
     fireable = game.get_fireable_cannons()
@@ -128,7 +118,6 @@ def get_interaction_snapshot(game: "Game") -> dict[str, Any]:
         ],
     }
 
-
 def get_log_snapshot(game: "Game") -> dict[str, Any]:
     return {
         "history": game.history.copy(),
@@ -138,7 +127,6 @@ def get_log_snapshot(game: "Game") -> dict[str, Any]:
         "auto_action_messages": game.auto_action_messages.copy(),
         "last_action_events": game.get_last_action_events(),
     }
-
 
 def get_drop_legal_snapshot(game: "Game") -> dict[str, Any]:
     place_positions = game.board.legal_place_positions(game.current_player)
@@ -161,7 +149,6 @@ def get_drop_legal_snapshot(game: "Game") -> dict[str, Any]:
         "all_legal_moves_text": game.all_legal_moves(game.current_player),
     }
 
-
 def get_state_snapshot(game: "Game") -> dict[str, Any]:
     red_score, blue_score = game.calculate_score()
 
@@ -181,14 +168,11 @@ def get_state_snapshot(game: "Game") -> dict[str, Any]:
         "action_api": game.get_action_api_snapshot(),
     }
 
-
 def export_board_state(game: "Game") -> list[list[dict[str, Any] | None]]:
     return get_board_snapshot(game)
 
-
 def export_cannon_list(game: "Game", cannons: list[Cannon]) -> list[dict[str, Any]]:
     return [serialize_cannon(game, cannon) for cannon in cannons]
-
 
 def export_full_state(game: "Game") -> dict[str, Any]:
     return {
@@ -232,12 +216,10 @@ def export_full_state(game: "Game") -> dict[str, Any]:
         "last_action_events": game.get_last_action_events(),
     }
 
-
 def deserialize_piece_data(data: dict[str, Any] | None) -> Piece | None:
     if data is None:
         return None
     return Piece(data["color"], data["level"])
-
 
 def deserialize_cannon_data(data: dict[str, Any]) -> Cannon:
     return Cannon(
@@ -247,7 +229,6 @@ def deserialize_cannon_data(data: dict[str, Any]) -> Cannon:
         direction=data["direction"],
         mouth=data["mouth"],
     )
-
 
 def import_full_state(game: "Game", data: dict[str, Any]) -> None:
     for y, row in enumerate(data["board"], start=1):
@@ -308,14 +289,12 @@ def import_full_state(game: "Game", data: dict[str, Any]) -> None:
 
     game.undo_stack = []
 
-
 def from_exported_state(data: dict[str, Any]) -> "Game":
     from core.game import Game
 
     game = Game()
     import_full_state(game, data)
     return game
-
 
 def export_import_roundtrip_snapshot(game: "Game") -> dict[str, Any]:
     data = export_full_state(game)

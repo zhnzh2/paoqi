@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 def action_label_impl(self, action: dict[str, Any]) -> str:
     action_type = action["type"]
 
@@ -25,12 +24,10 @@ def action_label_impl(self, action: dict[str, Any]) -> str:
 
     return str(action)
 
-
 def action_with_label_impl(self, action: dict[str, Any]) -> dict[str, Any]:
     result = action.copy()
     result["label"] = self._action_label(action)
     return result
-
 
 def action_to_command_text_impl(self, action: dict[str, Any]) -> str:
     action_type = action["type"]
@@ -49,13 +46,11 @@ def action_to_command_text_impl(self, action: dict[str, Any]) -> str:
 
     raise ValueError(f"未知动作类型：{action_type}")
 
-
 def legal_action_command_texts_impl(self) -> list[str]:
     return [
         self.action_to_command_text(action)
         for action in self.get_legal_actions()
     ]
-
 
 def get_legal_drop_actions_impl(self) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
@@ -95,7 +90,6 @@ def get_legal_drop_actions_impl(self) -> list[dict[str, Any]]:
 
     return actions
 
-
 def get_legal_muzzle_actions_impl(self) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
 
@@ -121,7 +115,6 @@ def get_legal_muzzle_actions_impl(self) -> list[dict[str, Any]]:
 
     return actions
 
-
 def get_legal_fire_actions_impl(self) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
 
@@ -139,7 +132,6 @@ def get_legal_fire_actions_impl(self) -> list[dict[str, Any]]:
         )
 
     return actions
-
 
 def get_legal_eat_actions_impl(self) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
@@ -162,7 +154,6 @@ def get_legal_eat_actions_impl(self) -> list[dict[str, Any]]:
 
     return actions
 
-
 def get_legal_actions_impl(self) -> list[dict[str, Any]]:
     if self.game_over:
         return []
@@ -181,7 +172,6 @@ def get_legal_actions_impl(self) -> list[dict[str, Any]]:
 
     return []
 
-
 def get_legal_actions_snapshot_impl(self) -> dict[str, Any]:
     actions = self.get_legal_actions()
     single_action = actions[0] if len(actions) == 1 else None
@@ -194,7 +184,6 @@ def get_legal_actions_snapshot_impl(self) -> dict[str, Any]:
         "single_action": single_action,
         "actions": actions,
     }
-
 
 def get_action_api_snapshot_impl(self) -> dict[str, Any]:
     return {
@@ -212,17 +201,14 @@ def get_action_api_snapshot_impl(self) -> dict[str, Any]:
         "supports_state_import": True,
     }
 
-
 def has_single_legal_action_impl(self) -> bool:
     return len(self.get_legal_actions()) == 1
-
 
 def get_single_legal_action_impl(self) -> dict[str, Any] | None:
     actions = self.get_legal_actions()
     if len(actions) != 1:
         return None
     return actions[0]
-
 
 def is_action_legal_impl(self, action: dict[str, Any]) -> bool:
     legal_actions = self.get_legal_actions()
@@ -232,7 +218,6 @@ def is_action_legal_impl(self, action: dict[str, Any]) -> bool:
             return True
 
     return False
-
 
 def actions_equal_for_execution_impl(
     self,

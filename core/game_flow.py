@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import List
 
-
 def start_resolution_for_current_player_impl(self) -> None:
     from core.cannon import auto_determine_mouth, cannon_signature
     from core.record import player_name
@@ -34,10 +33,8 @@ def start_resolution_for_current_player_impl(self) -> None:
 
     self._record_phase_change_event()
 
-
 def has_pending_muzzle_choice_impl(self) -> bool:
     return bool(self.pending_muzzle_cannons)
-
 
 def all_legal_moves_impl(self, color: str) -> List[str]:
     moves: List[str] = []
@@ -52,10 +49,8 @@ def all_legal_moves_impl(self, color: str) -> List[str]:
 
     return moves
 
-
 def can_player_move_impl(self, color: str) -> bool:
     return bool(self.board.legal_place_positions(color) or self.board.legal_upgrade_positions(color))
-
 
 def check_game_over_at_turn_start_impl(self) -> bool:
     if self.phase != "drop":
@@ -70,7 +65,6 @@ def check_game_over_at_turn_start_impl(self) -> bool:
 
     return False
 
-
 def end_turn_impl(self) -> None:
     self.current_player = self.opponent(self.current_player)
     self.turn_number += 1
@@ -83,7 +77,6 @@ def end_turn_impl(self) -> None:
     self.waiting_new_pool_cannons = []
     self.last_change_reached = {}
     self.last_fire_report_lines = []
-
 
 def finish_full_round_impl(self) -> None:
     next_drop_player = (
@@ -109,7 +102,6 @@ def finish_full_round_impl(self) -> None:
 
     self._record_turn_change_event("full_round_finished")
     self._record_phase_change_event()
-
 
 def advance_turn_impl(self) -> None:
     from core.record import format_cannon_for_record
@@ -196,12 +188,10 @@ def advance_turn_impl(self) -> None:
 
         return
 
-
 def calculate_score_impl(self) -> tuple[int, int]:
     red_score = self.board.count_pieces("R")
     blue_score = self.board.count_pieces("B") + 9
     return red_score, blue_score
-
 
 def determine_winner_by_score_impl(self) -> str | None:
     red_score, blue_score = self.calculate_score()
@@ -211,7 +201,6 @@ def determine_winner_by_score_impl(self) -> str | None:
     if blue_score > red_score:
         return "B"
     return None
-
 
 def finish_game_impl(
     self,
@@ -228,10 +217,8 @@ def finish_game_impl(
     self.phase = "drop"
     self.clear_pending_auto_action()
 
-
 def finish_by_agreement_impl(self) -> None:
     self.finish_game(reason="agreement", winner=None)
-
 
 def resign_impl(self, resigning_player: str | None = None) -> None:
     if resigning_player is None:

@@ -453,7 +453,6 @@ class Game:
         from core.record import history_text
         return history_text(self.history)
 
-
     def debug_text(self) -> str:
         from core.record import debug_text
         return debug_text(self.debug_log)
