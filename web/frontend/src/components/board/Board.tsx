@@ -9,7 +9,7 @@ type HighlightType = "drop" | "eat" | "muzzle" | "fire" | null;
 
 type BoardProps = {
   boardData: PieceData[][];
-  previewBoardData: PieceData[][];
+  previewBoardData: PieceData[][] | null;
   highlightedCells: Record<string, HighlightType>;
   hoveredCellKey: string | null;
   hoveredCannonCells: Record<string, true>;
@@ -30,6 +30,14 @@ function makeCellKey(x: number, y: number): string {
   return `${x},${y}`;
 }
 
+function piecesEqual(a: PieceData, b: PieceData): boolean {
+  if (a === null || b === null) {
+    return a === b;
+  }
+
+  return a.color === b.color && a.level === b.level;
+}
+
 export default function Board({
   boardData,
   previewBoardData,
@@ -44,6 +52,8 @@ export default function Board({
   onCellHover,
   onCellLeave
 }: BoardProps) {
+  const previewActive = previewBoardData !== null;
+
   return (
     <div className={`board-panel ${isBusy ? "board-panel-busy" : ""}`}>
       <div className="board-shell">
@@ -72,7 +82,10 @@ export default function Board({
                 const y = rowIndex + 1;
                 const key = makeCellKey(x, y);
                 const highlightType = highlightedCells[key] ?? null;
-                const previewPiece = previewBoardData[rowIndex]?.[colIndex] ?? null;
+                const previewPiece = previewActive
+                  ? previewBoardData[rowIndex]?.[colIndex] ?? null
+                  : piece;
+                const previewChanged = !piecesEqual(piece, previewPiece);
                 const isCannonHovered = Boolean(hoveredCannonCells[key]);
                 const arrowText = arrowCells[key] ?? null;
 
@@ -83,6 +96,8 @@ export default function Board({
                     y={y}
                     piece={piece}
                     previewPiece={previewPiece}
+                    previewActive={previewActive}
+                    previewChanged={previewChanged}
                     coordText={makeCoordText(x, y)}
                     showCoordText={showCoordText}
                     isClickable={!isBusy}

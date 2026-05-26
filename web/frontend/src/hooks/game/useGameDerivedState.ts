@@ -109,6 +109,10 @@ export default function useGameDerivedState({
       return "";
     }
 
+    if (payload.pending_auto_message) {
+      return payload.pending_auto_message;
+    }
+
     if (Array.isArray(payload.auto_action_messages) && payload.auto_action_messages.length > 0) {
       return payload.auto_action_messages[payload.auto_action_messages.length - 1];
     }

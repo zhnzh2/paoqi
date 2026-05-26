@@ -4,16 +4,57 @@ const RAW_API_BASE =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
 
 const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
+const SESSION_STORAGE_KEY = "paoqi_web_session_id";
+
+function createSessionId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getSessionId(): string {
+  const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
+  if (existing) {
+    return existing;
+  }
+
+  const sessionId = createSessionId();
+  window.localStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+  return sessionId;
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  const headers = new Headers(options?.headers);
+  headers.set("Content-Type", "application/json");
+  headers.set("X-Paoqi-Session-Id", getSessionId());
+
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json"
-    },
-    ...options
+    ...options,
+    headers
   });
 
-  const data = await response.json();
+  const contentType = response.headers.get("content-type") ?? "";
+  const isJson = contentType.includes("application/json");
+  const data = isJson ? await response.json() : null;
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      message: data?.message ?? `请求失败：HTTP ${response.status}`,
+      data: null
+    };
+  }
+
+  if (!data) {
+    return {
+      ok: false,
+      message: "请求失败：后端返回了非 JSON 响应。",
+      data: null
+    };
+  }
+
   return data;
 }
 

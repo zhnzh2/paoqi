@@ -12,6 +12,7 @@ def build_game_payload(game: Game) -> dict[str, Any]:
         "legal_actions_snapshot": game.get_legal_actions_snapshot(),
         "has_pending_auto_action": game.has_pending_auto_action(),
         "pending_auto_action": game.pending_auto_action,
+        "pending_auto_message": game.pending_auto_message,
         "auto_action_messages": list(game.auto_action_messages),
         "game_over": game.game_over,
         "game_over_reason": game.game_over_reason,

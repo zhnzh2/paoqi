@@ -1,6 +1,7 @@
 #undo.py
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import List
 
 from core.models import Piece, Cannon
@@ -44,13 +45,18 @@ def snapshot_state(game) -> dict:
         "command_log": game.command_log.copy(),
         "game_over": game.game_over,
         "winner": game.winner,
+        "game_over_reason": game.game_over_reason,
         "last_new_cannons": copy_cannon_list(game.last_new_cannons),
         "pending_muzzle_cannons": copy_cannon_list(game.pending_muzzle_cannons),
         "last_fire_report_lines": game.last_fire_report_lines.copy(),
+        "auto_action_messages": game.auto_action_messages.copy(),
+        "last_action_events": deepcopy(game.last_action_events),
         "last_change_reached": game.last_change_reached.copy(),
         "cannon_mouth_map": game.cannon_mouth_map.copy(),
         "fire_cannon_pool": copy_cannon_list(game.fire_cannon_pool),
         "waiting_new_pool_cannons": copy_cannon_list(game.waiting_new_pool_cannons),
+        "pending_auto_action": deepcopy(game.pending_auto_action),
+        "pending_auto_message": game.pending_auto_message,
         "phase": game.phase,
         "round_drop_player": game.round_drop_player,
         "chain_pass_count": game.chain_pass_count,
@@ -67,13 +73,18 @@ def restore_state(game, snapshot: dict) -> None:
     game.command_log = snapshot["command_log"]
     game.game_over = snapshot["game_over"]
     game.winner = snapshot["winner"]
+    game.game_over_reason = snapshot["game_over_reason"]
     game.last_new_cannons = snapshot["last_new_cannons"]
     game.pending_muzzle_cannons = snapshot["pending_muzzle_cannons"]
     game.last_fire_report_lines = snapshot["last_fire_report_lines"]
+    game.auto_action_messages = snapshot["auto_action_messages"]
+    game.last_action_events = snapshot["last_action_events"]
     game.last_change_reached = snapshot["last_change_reached"]
     game.cannon_mouth_map = snapshot["cannon_mouth_map"]
     game.fire_cannon_pool = snapshot["fire_cannon_pool"]
     game.waiting_new_pool_cannons = snapshot["waiting_new_pool_cannons"]
+    game.pending_auto_action = snapshot["pending_auto_action"]
+    game.pending_auto_message = snapshot["pending_auto_message"]
     game.phase = snapshot["phase"]
     game.round_drop_player = snapshot["round_drop_player"]
     game.chain_pass_count = snapshot["chain_pass_count"]

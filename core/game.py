@@ -948,11 +948,18 @@ class Game:
         red_score, blue_score = self.calculate_score()
         winner = self.determine_winner_by_score()
 
+        reason_text_map = {
+            "no_legal_move": f"{player_name(self.current_player)}无法进行合法落子",
+            "agreement": "双方协商终局",
+            "resign": f"{player_name(self.current_player)}投降",
+        }
+        reason_text = reason_text_map.get(self.game_over_reason, "游戏结束")
+
         lines: List[str] = []
         lines.append("游戏结束")
-        lines.append(f"结束原因：{player_name(self.current_player)}在落子阶段无合法操作")
-        lines.append(f"红方总分：{red_score}")
-        lines.append(f"蓝方总分：{blue_score}（已含补偿）")
+        lines.append(f"结束原因：{reason_text}")
+        lines.append(f"红方棋子数：{red_score}")
+        lines.append(f"蓝方棋子数：{blue_score}（已含 +9 补偿）")
 
         if winner is None:
             lines.append("结果：平局")
@@ -962,7 +969,42 @@ class Game:
         return "\n".join(lines)
 
     def clone(self) -> "Game":
-        return Game.from_exported_state(self.export_full_state())
+        cloned = Game.__new__(Game)
+        # 深拷贝棋盘（避免共享引用）
+        cloned.board = Board()
+        cloned.board.grid = [
+            [
+                Piece(p.color, p.level) if p is not None else None
+                for p in row
+            ]
+            for row in self.board.grid
+        ]
+        # 拷贝简单状态
+        cloned.current_player = self.current_player
+        cloned.turn_number = self.turn_number
+        cloned.history = self.history.copy()
+        cloned.debug_log = self.debug_log.copy()
+        cloned.command_log = self.command_log.copy()
+        cloned.undo_stack = []  # 克隆不需要撤销栈
+        cloned.game_over = self.game_over
+        cloned.winner = self.winner
+        cloned.game_over_reason = self.game_over_reason
+        cloned.cannon_record_style = self.cannon_record_style
+        cloned.last_new_cannons = [copy_cannon(c) for c in self.last_new_cannons]
+        cloned.pending_muzzle_cannons = [copy_cannon(c) for c in self.pending_muzzle_cannons]
+        cloned.last_fire_report_lines = self.last_fire_report_lines.copy()
+        cloned.auto_action_messages = self.auto_action_messages.copy()
+        cloned.last_change_reached = self.last_change_reached.copy()
+        cloned.last_action_events = self.last_action_events.copy()
+        cloned.cannon_mouth_map = self.cannon_mouth_map.copy()
+        cloned.fire_cannon_pool = [copy_cannon(c) for c in self.fire_cannon_pool]
+        cloned.waiting_new_pool_cannons = [copy_cannon(c) for c in self.waiting_new_pool_cannons]
+        cloned.phase = self.phase
+        cloned.round_drop_player = self.round_drop_player
+        cloned.chain_pass_count = self.chain_pass_count
+        cloned.pending_auto_action = self.pending_auto_action
+        cloned.pending_auto_message = self.pending_auto_message
+        return cloned
 
     def is_terminal(self) -> bool:
         if self.game_over:

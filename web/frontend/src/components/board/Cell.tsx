@@ -10,6 +10,8 @@ type CellProps = {
   y: number;
   piece: PieceData;
   previewPiece: PieceData;
+  previewActive: boolean;
+  previewChanged: boolean;
   coordText: string;
   showCoordText: boolean;
   isClickable: boolean;
@@ -28,6 +30,8 @@ export default function Cell({
   y,
   piece,
   previewPiece,
+  previewActive,
+  previewChanged,
   coordText,
   showCoordText,
   isClickable,
@@ -61,8 +65,8 @@ export default function Cell({
   }
 
   const hoverClass = isHovered ? "board-cell-hovered" : "";
-  const displayPiece = previewPiece ?? piece;
-  const showPreview = previewPiece !== null;
+  const displayPiece = previewActive ? previewPiece : piece;
+  const showPreview = previewActive && previewChanged && displayPiece !== null;
 
   return (
     <button

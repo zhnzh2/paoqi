@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pygame
 
 from core.game import Game
@@ -29,6 +31,10 @@ from ui.logic_click import handle_pending_auto_action_click, handle_board_phase_
 from ui.logic_preview import compute_preview_board_data
 
 def run_app() -> None:
+    base_dir = Path(__file__).resolve().parents[1]
+    save_dir = base_dir / "saves"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
     pygame.init()
     pygame.display.set_caption("炮棋（桌面版测试界面）")
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), vsync=1)
@@ -37,11 +43,11 @@ def run_app() -> None:
     quit_button_rect = get_quit_button_rect()
     system_button_rects: dict[str, pygame.Rect] = {}
     save_slot_files = {
-        1: "save_slot_1.json",
-        2: "save_slot_2.json",
-        3: "save_slot_3.json",
+        1: str(save_dir / "save_slot_1.json"),
+        2: str(save_dir / "save_slot_2.json"),
+        3: str(save_dir / "save_slot_3.json"),
     }
-    record_export_filename = "record_export.txt"
+    record_export_filename = str(save_dir / "record_export.txt")
     mouse_pos: tuple[int, int] | None = None
     hovered_cell: tuple[int, int] | None = None
 

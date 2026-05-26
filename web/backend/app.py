@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.game import Game
@@ -31,18 +32,32 @@ SAVE_SLOT_FILES = {
 }
 
 RECORD_EXPORT_FILE = str(SAVE_DIR / "web_record_export.txt")
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "PAOQI_CORS_ORIGINS",
+        "http://127.0.0.1:5173,http://localhost:5173,https://paoqi.org,https://www.paoqi.org",
+    ).split(",")
+    if origin.strip()
+]
 
 app = FastAPI(title="Paoqi Web Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 session = LocalGameSession()
+
+
+def get_session_id(
+    x_paoqi_session_id: str | None = Header(default=None, alias="X-Paoqi-Session-Id"),
+) -> str | None:
+    return x_paoqi_session_id
 
 
 @app.get("/api/health")
@@ -54,20 +69,20 @@ def health_check() -> dict:
 
 
 @app.post("/api/new-game")
-def new_game() -> dict:
-    game = session.reset()
+def new_game(session_id: str | None = Depends(get_session_id)) -> dict:
+    game = session.reset(session_id)
     return build_ok_response(game, message="已开始新对局。")
 
 
 @app.get("/api/state")
-def get_state() -> dict:
-    game = session.get_game()
+def get_state(session_id: str | None = Depends(get_session_id)) -> dict:
+    game = session.get_game(session_id)
     return build_ok_response(game)
 
 
 @app.post("/api/apply-action")
-def apply_action(req: ActionRequest) -> dict:
-    game = session.get_game()
+def apply_action(req: ActionRequest, session_id: str | None = Depends(get_session_id)) -> dict:
+    game = session.get_game(session_id)
     result = game.try_apply_action_with_snapshot(req.action)
 
     if not result["ok"]:
@@ -83,8 +98,8 @@ def apply_action(req: ActionRequest) -> dict:
     )
 
 @app.post("/api/preview-action")
-def preview_action(req: ActionRequest) -> dict:
-    game = session.get_game()
+def preview_action(req: ActionRequest, session_id: str | None = Depends(get_session_id)) -> dict:
+    game = session.get_game(session_id)
 
     try:
         preview_game = game.clone()
@@ -104,8 +119,8 @@ def preview_action(req: ActionRequest) -> dict:
         return build_error_response(f"预览失败：{e}")
 
 @app.post("/api/confirm-pending")
-def confirm_pending_action() -> dict:
-    game = session.get_game()
+def confirm_pending_action(session_id: str | None = Depends(get_session_id)) -> dict:
+    game = session.get_game(session_id)
 
     if not game.has_pending_auto_action():
         return build_error_response("当前没有待确认的自动动作。")
@@ -129,15 +144,15 @@ def confirm_pending_action() -> dict:
 
 
 @app.post("/api/restart")
-def restart_game() -> dict:
+def restart_game(session_id: str | None = Depends(get_session_id)) -> dict:
     game = Game()
-    session.set_game(game)
+    session.set_game(game, session_id)
     return build_ok_response(game, message="已重新开始对局。")
 
 
 @app.post("/api/undo")
-def undo_action() -> dict:
-    game = session.get_game()
+def undo_action(session_id: str | None = Depends(get_session_id)) -> dict:
+    game = session.get_game(session_id)
 
     try:
         game.undo()
@@ -146,8 +161,8 @@ def undo_action() -> dict:
         return build_error_response(f"撤销失败：{e}")
 
 @app.post("/api/endgame")
-def finish_by_agreement() -> dict:
-    game = session.get_game()
+def finish_by_agreement(session_id: str | None = Depends(get_session_id)) -> dict:
+    game = session.get_game(session_id)
 
     try:
         game.finish_by_agreement()
@@ -157,8 +172,8 @@ def finish_by_agreement() -> dict:
 
 
 @app.post("/api/resign")
-def resign_game() -> dict:
-    game = session.get_game()
+def resign_game(session_id: str | None = Depends(get_session_id)) -> dict:
+    game = session.get_game(session_id)
 
     try:
         game.resign()
@@ -167,8 +182,8 @@ def resign_game() -> dict:
         return build_error_response(f"投降失败：{e}")
 
 @app.post("/api/save/{slot}")
-def save_to_slot(slot: int) -> dict:
-    game = session.get_game()
+def save_to_slot(slot: int, session_id: str | None = Depends(get_session_id)) -> dict:
+    game = session.get_game(session_id)
 
     if slot not in SAVE_SLOT_FILES:
         return build_error_response("无效的存档槽位。")
@@ -181,21 +196,21 @@ def save_to_slot(slot: int) -> dict:
 
 
 @app.post("/api/load/{slot}")
-def load_from_slot(slot: int) -> dict:
+def load_from_slot(slot: int, session_id: str | None = Depends(get_session_id)) -> dict:
     if slot not in SAVE_SLOT_FILES:
         return build_error_response("无效的存档槽位。")
 
     try:
         game = load_game_from_file(SAVE_SLOT_FILES[slot])
-        session.set_game(game)
+        session.set_game(game, session_id)
         return build_ok_response(game, message=f"已从槽位 {slot} 载入对局。")
     except Exception as e:
         return build_error_response(f"读档失败：{e}")
 
 
 @app.get("/api/export-record")
-def export_record() -> dict:
-    game = session.get_game()
+def export_record(session_id: str | None = Depends(get_session_id)) -> dict:
+    game = session.get_game(session_id)
 
     try:
         export_record_to_file(game, RECORD_EXPORT_FILE)
@@ -210,7 +225,7 @@ def export_record() -> dict:
         return build_error_response(f"导出失败：{e}")
     
 @app.get("/api/save-slots")
-def get_save_slots() -> dict:
+def get_save_slots(session_id: str | None = Depends(get_session_id)) -> dict:
     slots = []
 
     for slot, path in SAVE_SLOT_FILES.items():
@@ -223,7 +238,7 @@ def get_save_slots() -> dict:
             }
         )
 
-    game = session.get_game()
+    game = session.get_game(session_id)
     can_continue = len(game.history) > 0 and not game.game_over
 
     return {

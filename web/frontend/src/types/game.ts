@@ -19,6 +19,7 @@ export type GamePayload = {
   legal_actions_snapshot: Record<string, any>;
   has_pending_auto_action: boolean;
   pending_auto_action: GameAction | null;
+  pending_auto_message: string;
   auto_action_messages: string[];
   game_over: boolean;
   game_over_reason: string | null;

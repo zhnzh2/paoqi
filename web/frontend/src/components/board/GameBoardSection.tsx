@@ -6,7 +6,7 @@ type HighlightType = "drop" | "eat" | "muzzle" | "fire" | null;
 
 type GameBoardSectionProps = {
   boardData: BoardCell[][];
-  previewBoardData: BoardCell[][];
+  previewBoardData: BoardCell[][] | null;
   highlightedCells: Record<string, HighlightType>;
   hoveredCellKey: string | null;
   hoveredCannonCells: Record<string, true>;

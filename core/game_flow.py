@@ -198,8 +198,8 @@ def advance_turn_impl(self) -> None:
 
 
 def calculate_score_impl(self) -> tuple[int, int]:
-    red_score = self.board.piece_sum("R")
-    blue_score = self.board.piece_sum("B") + 9
+    red_score = self.board.count_pieces("R")
+    blue_score = self.board.count_pieces("B") + 9
     return red_score, blue_score
 
 

@@ -1,6 +1,7 @@
 #state_io.py
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, TYPE_CHECKING
 
 from core.cannon import cannon_signature
@@ -199,6 +200,7 @@ def export_full_state(game: "Game") -> dict[str, Any]:
         "chain_pass_count": game.chain_pass_count,
         "game_over": game.game_over,
         "winner": game.winner,
+        "game_over_reason": game.game_over_reason,
         "cannon_record_style": game.cannon_record_style,
         "last_new_cannons": export_cannon_list(game, game.last_new_cannons),
         "pending_muzzle_cannons": export_cannon_list(game, game.pending_muzzle_cannons),
@@ -225,6 +227,8 @@ def export_full_state(game: "Game") -> dict[str, Any]:
         "command_log": game.command_log.copy(),
         "last_fire_report_lines": game.last_fire_report_lines.copy(),
         "auto_action_messages": game.auto_action_messages.copy(),
+        "pending_auto_action": deepcopy(game.pending_auto_action),
+        "pending_auto_message": game.pending_auto_message,
         "last_action_events": game.get_last_action_events(),
     }
 
@@ -257,6 +261,7 @@ def import_full_state(game: "Game", data: dict[str, Any]) -> None:
     game.chain_pass_count = data["chain_pass_count"]
     game.game_over = data["game_over"]
     game.winner = data["winner"]
+    game.game_over_reason = data.get("game_over_reason")
     game.cannon_record_style = data["cannon_record_style"]
 
     game.last_new_cannons = [
@@ -297,6 +302,8 @@ def import_full_state(game: "Game", data: dict[str, Any]) -> None:
     game.command_log = data["command_log"].copy()
     game.last_fire_report_lines = data["last_fire_report_lines"].copy()
     game.auto_action_messages = data["auto_action_messages"].copy()
+    game.pending_auto_action = deepcopy(data.get("pending_auto_action"))
+    game.pending_auto_message = data.get("pending_auto_message", "")
     game.last_action_events = [event.copy() for event in data["last_action_events"]]
 
     game.undo_stack = []

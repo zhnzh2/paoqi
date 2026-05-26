@@ -160,7 +160,7 @@ const {
       <div className="layout">
         <GameBoardSection
           boardData={boardData}
-          previewBoardData={previewBoardData ?? boardData}
+          previewBoardData={previewBoardData}
           highlightedCells={highlightedCells}
           hoveredCellKey={hoveredCellKey}
           hoveredCannonCells={hoveredCannonCells}

@@ -132,8 +132,11 @@ def apply_action_impl(self, action: dict[str, Any]) -> None:
     if not self.is_action_legal(action):
         raise ValueError(f"非法动作：{action}")
 
-    self.clear_pending_auto_action()
+    previous_pending_auto_action = self.pending_auto_action
     self._dispatch_action(action)
+
+    if self.pending_auto_action is previous_pending_auto_action:
+        self.clear_pending_auto_action()
 
 
 def try_apply_action_impl(self, action: dict[str, Any]) -> tuple[bool, str]:
