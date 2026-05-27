@@ -1,11 +1,10 @@
-#game_flow.py
+# core/game_impl/flow.py
 from __future__ import annotations
 
 from typing import List
 
 def start_resolution_for_current_player_impl(self) -> None:
     from core.cannon import auto_determine_mouth, cannon_signature
-    from core.record import player_name
 
     self.fire_cannon_pool = []
     self.pending_muzzle_cannons = []

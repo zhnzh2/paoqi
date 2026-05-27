@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.game import Game
-from ui.save_io import (
+from core.save_io import (
     export_record_to_file,
     load_game_from_file,
     save_game_to_file,

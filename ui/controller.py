@@ -54,27 +54,6 @@ def find_drop_action_by_cell(legal_actions: list[dict[str, Any]], x: int, y: int
             return action
     return None
 
-def get_legal_cell_highlights(legal_actions: list[dict[str, Any]]) -> dict[tuple[int, int], str]:
-    """
-    返回每个格子的高亮类型：
-    - place
-    - upgrade
-    """
-    result: dict[tuple[int, int], str] = {}
-
-    for action in legal_actions:
-        if action.get("type") != "move":
-            continue
-
-        x = action.get("x")
-        y = action.get("y")
-        mode = action.get("mode")
-
-        if isinstance(x, int) and isinstance(y, int):
-            result[(x, y)] = mode
-
-    return result
-
 def get_capturable_highlights(legal_actions: list[dict[str, Any]]) -> list[tuple[int, int]]:
     result: list[tuple[int, int]] = []
 

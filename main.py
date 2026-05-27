@@ -1,6 +1,6 @@
 #main.py
-import json
 from core.game import Game
+from core.save_io import save_game_to_file, load_game_from_file
 
 def print_help() -> None:
     print("可用命令：")
@@ -158,16 +158,6 @@ def parse_input_to_action(game: Game, text: str) -> dict | None:
 
     return None
 
-def save_game_to_file(game: Game, filename: str) -> None:
-    data = game.export_full_state()
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-def load_game_from_file(filename: str) -> Game:
-    with open(filename, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return Game.from_exported_state(data)
-
 def print_phase_prompt(game: Game) -> None:
     print(game.phase_name())
 
@@ -251,28 +241,6 @@ def print_action_events(result: dict) -> None:
             continue
 
         print(f"  {event_type} : {event}")
-
-def print_post_action_feedback(game: Game) -> None:
-    auto_messages = game.consume_auto_action_messages()
-    if auto_messages:
-        for msg in auto_messages:
-            print(msg)
-    else:
-        if game.phase == "muzzle":
-            print(game.new_cannons_report())
-        elif game.phase == "fire":
-            print(game.fire_report_text())
-        elif game.phase == "eat":
-            print(game.capturable_report())
-
-    if game.has_pending_muzzle_choice():
-        print(game.pending_muzzle_report())
-    elif game.phase == "fire":
-        print(game.fireable_report())
-    elif game.phase == "eat":
-        print(game.capturable_report())
-    elif game.phase == "drop":
-        print("当前大回合已结束，已切换到下一名玩家的落子阶段。")
 
 def print_post_action_feedback_from_result(game: Game, result: dict) -> None:
     payload = result.get("result")

@@ -47,3 +47,26 @@ def test_export_import_preserves_terminal_reason_and_pending_auto_action() -> No
 
     assert restored_pending.pending_auto_action == pending_game.pending_auto_action
     assert restored_pending.pending_auto_message == pending_game.pending_auto_message
+
+
+def test_score_uses_piece_count_not_piece_levels() -> None:
+    game = Game()
+
+    game.apply_action(
+        {
+            "type": "move",
+            "mode": "upgrade",
+            "x": 9,
+            "y": 9,
+        }
+    )
+
+    assert game.calculate_score()[0] == 1
+
+
+def test_clone_does_not_share_pending_auto_action_dict() -> None:
+    game = _reach_pending_auto_action()
+    clone = game.clone()
+
+    assert clone.pending_auto_action == game.pending_auto_action
+    assert clone.pending_auto_action is not game.pending_auto_action

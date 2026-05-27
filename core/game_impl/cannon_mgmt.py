@@ -1,4 +1,4 @@
-#game_cannon.py
+# core/game_impl/cannon_mgmt.py
 from __future__ import annotations
 
 from typing import List

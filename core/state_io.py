@@ -11,12 +11,6 @@ from core.record import format_cannon_for_record, player_name
 if TYPE_CHECKING:
     from core.game import Game
 
-def phase_code(game: "Game") -> str:
-    return game.phase
-
-def winner_code(game: "Game") -> str | None:
-    return game.winner
-
 def serialize_piece_at(game: "Game", x: int, y: int) -> dict[str, Any] | None:
     piece = game.board.get(x, y)
     if piece is None:
@@ -26,13 +20,6 @@ def serialize_piece_at(game: "Game", x: int, y: int) -> dict[str, Any] | None:
         "color": piece.color,
         "level": piece.level,
         "short": piece.short(),
-    }
-
-def serialize_position(pos: tuple[int, int]) -> dict[str, int]:
-    x, y = pos
-    return {
-        "x": x,
-        "y": y,
     }
 
 def serialize_cannon(game: "Game", cannon: Cannon) -> dict[str, Any]:
@@ -78,7 +65,7 @@ def get_all_cannons_snapshot(game: "Game") -> dict[str, list[dict[str, Any]]]:
 
 def get_phase_snapshot(game: "Game") -> dict[str, Any]:
     return {
-        "phase": phase_code(game),
+        "phase": game.phase,
         "phase_name": game.phase_name(),
         "current_player": game.current_player,
         "current_player_name": player_name(game.current_player),
@@ -87,7 +74,7 @@ def get_phase_snapshot(game: "Game") -> dict[str, Any]:
         "chain_pass_count": game.chain_pass_count,
         "has_pending_muzzle_choice": game.has_pending_muzzle_choice(),
         "game_over": game.game_over,
-        "winner": winner_code(game),
+        "winner": game.winner,
     }
 
 def get_interaction_snapshot(game: "Game") -> dict[str, Any]:
@@ -295,9 +282,3 @@ def from_exported_state(data: dict[str, Any]) -> "Game":
     game = Game()
     import_full_state(game, data)
     return game
-
-def export_import_roundtrip_snapshot(game: "Game") -> dict[str, Any]:
-    data = export_full_state(game)
-    clone = from_exported_state(data)
-    return get_state_snapshot(clone)
-

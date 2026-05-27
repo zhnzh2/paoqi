@@ -1,4 +1,4 @@
-#game_legal.py
+# core/game_impl/legal.py
 from __future__ import annotations
 
 from typing import Any

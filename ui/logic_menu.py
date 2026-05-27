@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from core.game import Game
-from ui.save_io import load_game_from_file
+from core.save_io import load_game_from_file
 
 def make_quit_confirm_dialog() -> dict[str, str]:
     return {

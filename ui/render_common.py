@@ -1,7 +1,6 @@
 #ui/render_common.py
 from __future__ import annotations
 
-from typing import Any
 import pygame
 
 from ui.constants import *

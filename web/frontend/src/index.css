@@ -349,12 +349,6 @@ pre {
   gap: 10px;
 }
 
-.save-load-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
 .settings-list {
   display: flex;
   flex-direction: column;
@@ -376,13 +370,6 @@ pre {
 
 .danger-button:hover {
   background: #8e3c3c;
-}
-
-.settings-danger-group {
-  margin-top: 18px;
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 
 .modal-card-gameover {
@@ -548,7 +535,6 @@ h2 {
 
 .button-grid button,
 .modal-actions button,
-.save-load-grid button,
 .pending-auto-button {
   min-height: 42px;
   font-weight: 600;
@@ -879,12 +865,6 @@ h2 {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
-}
-
-.record-header-meta {
-  color: #aab5ca;
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .modal-card-gameover {

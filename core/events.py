@@ -6,15 +6,12 @@ from typing import Any, TYPE_CHECKING
 from core.record import player_name
 
 if TYPE_CHECKING:
-    from game import Game
+    from core.game import Game
 
 def make_event(event_type: str, **payload: Any) -> dict[str, Any]:
     event = {"type": event_type}
     event.update(payload)
     return event
-
-def make_position_event_payload(x: int, y: int) -> dict[str, int]:
-    return {"x": x, "y": y}
 
 def make_piece_change_event(
     x: int,
