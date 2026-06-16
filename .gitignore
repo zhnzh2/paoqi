@@ -52,9 +52,9 @@ Thumbs.db
 # Web frontend vite cache
 web/frontend/.vite/
 
-# Auto-generated core module bundle (run npm run bundle-core to regenerate)
-web/frontend/src/engine/coreModules.ts
-
 docs/
+
 Comment.txt
 Comment_Complete.txt
+1.md
+CLAUDE.md
