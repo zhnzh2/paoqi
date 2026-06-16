@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "npm run bundle-core && vite",
+    "bundle-core": "node scripts/bundleCoreModules.js",
+    "build": "npm run bundle-core && tsc -b && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

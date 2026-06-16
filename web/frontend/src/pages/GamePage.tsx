@@ -1,15 +1,5 @@
-import { useEffect, useState } from "react";
-import {
-  confirmPending,
-  endGameByAgreement,
-  exportRecord,
-  loadFromSlot,
-  newGame,
-  resignGame,
-  restartGame,
-  saveToSlot,
-  undoAction
-} from "../api/gameApi";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useEngine } from "../engine/EngineContext";
 import type { GamePayload } from "../types/game";
 import ConfirmModal from "../components/modals/ConfirmModal";
 import GameBoardSection from "../components/board/GameBoardSection";
@@ -26,45 +16,54 @@ import useGameViewOptions from "../hooks/ui/useGameViewOptions";
 import useModalController from "../hooks/ui/useModalController";
 import useModalEscapeClose from "../hooks/ui/useModalEscapeClose";
 
+// localStorage 键名
+const LS_CURRENT_GAME = "paoqi_current_game";
+const LS_SAVE_SLOT_PREFIX = "paoqi_save_slot_";
+
 type GamePageProps = {
   onBackToMenu: () => void;
   openLoadModalOnMount?: boolean;
 };
 
 export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }: GamePageProps) {
-  const [backendOk, setBackendOk] = useState<boolean>(false);
-  const [initLoading, setInitLoading] = useState<boolean>(false);
+  const { engine, isReady, isLoading, progressMessage, errorMessage } = useEngine();
+
   const [payload, setPayload] = useState<GamePayload | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string>("正在连接后端...");
+  const [statusMessage, setStatusMessage] = useState<string>(
+    isLoading ? progressMessage : "引擎就绪，对局已开始。"
+  );
   const [statusIsError, setStatusIsError] = useState<boolean>(false);
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null);
   const [recordPage, setRecordPage] = useState<number>(1);
   const recordPageSize = 20;
 
-const {
-  showRecordPanel,
-  setShowRecordPanel,
-  showCoordInsideCell,
-  setShowCoordInsideCell,
-  showDropHighlight,
-  setShowDropHighlight,
-  showEatHighlight,
-  setShowEatHighlight,
-  showMuzzleHighlight,
-  setShowMuzzleHighlight,
-  showFireHighlight,
-  setShowFireHighlight,
-  showArrowHints,
-  setShowArrowHints,
-  showHoverPreview,
-  setShowHoverPreview,
-  showCannonHoverEnhance,
-  setShowCannonHoverEnhance,
-  compactSidebar,
-  setCompactSidebar,
-  recordCollapsed,
-  setRecordCollapsed
-} = useGameViewOptions();
+  // 自动保存去重：跟踪上次已保存的 history 长度
+  const lastSavedHistoryLen = useRef(0);
+
+  const {
+    showRecordPanel,
+    setShowRecordPanel,
+    showCoordInsideCell,
+    setShowCoordInsideCell,
+    showDropHighlight,
+    setShowDropHighlight,
+    showEatHighlight,
+    setShowEatHighlight,
+    showMuzzleHighlight,
+    setShowMuzzleHighlight,
+    showFireHighlight,
+    setShowFireHighlight,
+    showArrowHints,
+    setShowArrowHints,
+    showHoverPreview,
+    setShowHoverPreview,
+    showCannonHoverEnhance,
+    setShowCannonHoverEnhance,
+    compactSidebar,
+    setCompactSidebar,
+    recordCollapsed,
+    setRecordCollapsed
+  } = useGameViewOptions();
 
   const {
     modalStack,
@@ -97,10 +96,13 @@ const {
     payload,
     isBoardBusy,
     modalCount: modalStack.length,
-    onRunAction: runAction,
     onStatusMessage: setStatusMessage,
     onStatusIsError: setStatusIsError,
-    onHoveredCellChange: setHoveredCell
+    onHoveredCellChange: setHoveredCell,
+    onPayloadChange: (p: GamePayload) => {
+      setPayload(p);
+      autoSave(p);
+    }
   });
 
   const {
@@ -140,9 +142,10 @@ const {
     totalRecordPages,
     onOpenModal: openModal,
     onHoveredCellClear: () => setHoveredCell(null),
-    onInitLoadingChange: setInitLoading,
-    onBackendOkChange: setBackendOk,
-    onPayloadChange: setPayload,
+    onPayloadChange: (p: GamePayload) => {
+      setPayload(p);
+      autoSave(p);
+    },
     onStatusMessage: setStatusMessage,
     onStatusIsError: setStatusIsError,
     onRecordPageChange: setRecordPage
@@ -154,6 +157,266 @@ const {
     onCloseTopModal: closeTopModal,
     onCloseConfirmDialog: closeConfirmDialog
   });
+
+  // ===================== 自动保存 =====================
+
+  function autoSave(p: GamePayload) {
+    if (!engine || !isReady) return;
+    const histLen = p.history?.length ?? 0;
+    if (histLen === lastSavedHistoryLen.current) return;
+    lastSavedHistoryLen.current = histLen;
+
+    try {
+      const state = engine.exportState();
+      localStorage.setItem(LS_CURRENT_GAME, JSON.stringify(state));
+    } catch {
+      // localStorage 写入失败（存储满等），静默忽略
+    }
+  }
+
+  // ===================== 引擎操作方法 =====================
+
+  const runEngineOp = useCallback(
+    (op: () => any) => runAction(op, "sidebar"),
+    [runAction]
+  );
+
+  const handleNewGame = useCallback(() => {
+    if (!engine) return;
+    runEngineOp(() => {
+      const p = engine.newGame();
+      lastSavedHistoryLen.current = 0;
+      localStorage.removeItem(LS_CURRENT_GAME);
+      return { ok: true, message: "已开始新对局。", payload: p };
+    });
+  }, [engine, runEngineOp]);
+
+  const handleRestart = useCallback(() => {
+    openConfirmDialog("确认重开", "是否确认重新开始当前对局？", "restart");
+  }, [openConfirmDialog]);
+
+  const handleUndo = useCallback(() => {
+    if (!engine) return;
+    runEngineOp(() => engine.undo());
+  }, [engine, runEngineOp]);
+
+  const handleConfirmPending = useCallback(() => {
+    if (!engine) return;
+    runEngineOp(() => engine.confirmPending());
+  }, [engine, runEngineOp]);
+
+  const handleEndGame = useCallback(() => {
+    openConfirmDialog(
+      "确认终局",
+      "是否确认双方同意结束当前对局？\n系统将按当前局面计算胜负。",
+      "endgame"
+    );
+  }, [openConfirmDialog]);
+
+  const handleResign = useCallback(() => {
+    openConfirmDialog(
+      "确认投降",
+      "是否确认当前行动方投降？\n确认后将直接判负。",
+      "resign"
+    );
+  }, [openConfirmDialog]);
+
+  // ===================== 存档操作 =====================
+
+  const getSaveSlotKey = (slot: number) => `${LS_SAVE_SLOT_PREFIX}${slot}`;
+
+  const handleSave = useCallback(
+    (slot: number) => {
+      if (!engine) return;
+      runEngineOp(() => {
+        const state = engine.exportState();
+        localStorage.setItem(getSaveSlotKey(slot), JSON.stringify(state));
+        return { ok: true, message: `已保存到槽位 ${slot}。`, payload: engine.getPayload() };
+      });
+    },
+    [engine, runEngineOp]
+  );
+
+  const handleLoad = useCallback(
+    (slot: number) => {
+      if (!engine) return;
+      runEngineOp(() => {
+        const raw = localStorage.getItem(getSaveSlotKey(slot));
+        if (!raw) {
+          return { ok: false, message: `槽位 ${slot} 没有存档。` };
+        }
+        try {
+          const data = JSON.parse(raw);
+          const p = engine.importState(data);
+          lastSavedHistoryLen.current = p.history?.length ?? 0;
+          return { ok: true, message: `已从槽位 ${slot} 载入对局。`, payload: p };
+        } catch {
+          return { ok: false, message: "存档数据损坏，无法读取。" };
+        }
+      });
+    },
+    [engine, runEngineOp]
+  );
+
+  const handleExportRecord = useCallback(() => {
+    if (!engine) return;
+    runEngineOp(() => {
+      const p = engine.getPayload();
+      const text = (p.history ?? []).join("\n");
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "paoqi_record.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+      return { ok: true, message: "棋谱已导出。", payload: p };
+    });
+  }, [engine, runEngineOp]);
+
+  // ===================== 确认对话框回调 =====================
+
+  const handleConfirmAction = useCallback(async () => {
+    if (!confirmDialog || !engine) return;
+    const action = confirmDialog.action;
+    closeConfirmDialog();
+
+    switch (action) {
+      case "save1":
+        handleSave(1);
+        break;
+      case "save2":
+        handleSave(2);
+        break;
+      case "save3":
+        handleSave(3);
+        break;
+      case "load1":
+        handleLoad(1);
+        break;
+      case "load2":
+        handleLoad(2);
+        break;
+      case "load3":
+        handleLoad(3);
+        break;
+      case "restart":
+        runEngineOp(() => {
+          const p = engine.restart();
+          lastSavedHistoryLen.current = 0;
+          localStorage.removeItem(LS_CURRENT_GAME);
+          return { ok: true, message: "已重新开始对局。", payload: p };
+        });
+        break;
+      case "confirm-pending":
+        handleConfirmPending();
+        break;
+      case "endgame":
+        runEngineOp(() => engine.endGameByAgreement());
+        break;
+      case "resign":
+        runEngineOp(() => engine.resign());
+        break;
+    }
+  }, [confirmDialog, engine, closeConfirmDialog, handleSave, handleLoad, runEngineOp, handleConfirmPending]);
+
+  // ===================== 加载状态 =====================
+
+  if (isLoading) {
+    return (
+      <div className="page">
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          color: "#ccc",
+          fontFamily: "sans-serif",
+        }}>
+          <div style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>♟️ 炮棋引擎加载中</div>
+          <div style={{ fontSize: "0.9rem", marginBottom: "1.5rem", color: "#888" }}>
+            {progressMessage}
+          </div>
+          <div style={{
+            width: "300px",
+            height: "4px",
+            background: "#333",
+            borderRadius: "2px",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              height: "100%",
+              width: "60%",
+              background: "#c74444",
+              borderRadius: "2px",
+              animation: "paoqi-loading-bar 1.5s ease-in-out infinite",
+            }} />
+          </div>
+          <style>{`
+            @keyframes paoqi-loading-bar {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(400%); }
+            }
+          `}</style>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="page">
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          color: "#f88",
+          fontFamily: "sans-serif",
+        }}>
+          <div style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>引擎加载失败</div>
+          <div style={{ fontSize: "0.9rem", marginBottom: "2rem", maxWidth: "500px", textAlign: "center" }}>
+            {errorMessage}
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: "0.6rem 1.5rem",
+              background: "#c74444",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "0.9rem",
+            }}
+          >
+            重试
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!payload) {
+    return (
+      <div className="page">
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          color: "#ccc",
+          fontFamily: "sans-serif",
+        }}>
+          正在准备对局...
+        </div>
+      </div>
+    );
+  }
+
+  // ===================== 正常游戏界面 =====================
 
   return (
     <div className="page">
@@ -168,31 +431,19 @@ const {
           activePlayer={payload?.current_player ?? null}
           showCoordText={showCoordInsideCell}
           isBusy={isBoardBusy || modalStack.length > 0 || Boolean(payload?.game_over)}
-          dangerDisabled={initLoading || isSidebarBusy}
+          dangerDisabled={isSidebarBusy}
           onCellClick={handleBoardCellClick}
           onCellHover={handleBoardCellHover}
           onCellLeave={handleBoardCellLeave}
-          onEndgame={() =>
-            openConfirmDialog(
-              "确认终局",
-              "是否确认双方同意结束当前对局？\n系统将按当前局面计算胜负。",
-              "endgame"
-            )
-          }
-          onResign={() =>
-            openConfirmDialog(
-              "确认投降",
-              "是否确认当前行动方投降？\n确认后将直接判负。",
-              "resign"
-            )
-          }
+          onEndgame={handleEndGame}
+          onResign={handleResign}
           onBackToMenu={onBackToMenu}
         />
 
         <GameSidebar
           compactSidebar={compactSidebar}
-          backendOk={backendOk}
-          initLoading={initLoading}
+          backendOk={true}
+          initLoading={false}
           isSidebarBusy={isSidebarBusy}
           statusMessage={statusMessage}
           statusIsError={statusIsError}
@@ -204,25 +455,18 @@ const {
           totalRecordPages={totalRecordPages}
           pagedHistory={pagedHistory}
           recordPageSize={recordPageSize}
-          onNewGame={() => runAction(newGame, "sidebar")}
-          onRestart={() =>
-            openConfirmDialog("确认重开", "是否确认重新开始当前对局？", "restart")
-          }
-          onUndo={() => runAction(undoAction, "sidebar")}
-          onExportRecord={() => runAction(exportRecord, "sidebar")}
+          onNewGame={handleNewGame}
+          onRestart={handleRestart}
+          onUndo={handleUndo}
+          onExportRecord={handleExportRecord}
           onOpenSaveLoad={() => openModal("save-load")}
           onOpenSettings={() => openModal("settings")}
-          onConfirmPending={() =>
-            openConfirmDialog(
-              "确认自动动作",
-              "是否确认执行当前待确认自动动作？",
-              "confirm-pending"
-            )
-          }
+          onConfirmPending={handleConfirmPending}
           onToggleRecordCollapsed={() => setRecordCollapsed((prev) => !prev)}
           onPrevRecordPage={() => setRecordPage((p) => Math.max(1, p - 1))}
           onNextRecordPage={() => setRecordPage((p) => Math.min(totalRecordPages, p + 1))}
         />
+
         {modalStack.length > 0 ? (
           <div className="modal-overlay-root">
             {isModalOpen("settings") ? (
@@ -258,24 +502,12 @@ const {
                 isTop={topModal === "save-load"}
                 onCloseTop={closeTopModal}
                 onCloseDirect={() => closeModal("save-load")}
-                onSave1={() =>
-                  openConfirmDialog("确认保存", "是否保存到槽位 1？", "save1")
-                }
-                onLoad1={() =>
-                  openConfirmDialog("确认读取", "是否从槽位 1 读取存档？", "load1")
-                }
-                onSave2={() =>
-                  openConfirmDialog("确认保存", "是否保存到槽位 2？", "save2")
-                }
-                onLoad2={() =>
-                  openConfirmDialog("确认读取", "是否从槽位 2 读取存档？", "load2")
-                }
-                onSave3={() =>
-                  openConfirmDialog("确认保存", "是否保存到槽位 3？", "save3")
-                }
-                onLoad3={() =>
-                  openConfirmDialog("确认读取", "是否从槽位 3 读取存档？", "load3")
-                }
+                onSave1={() => openConfirmDialog("确认保存", "是否保存到槽位 1？", "save1")}
+                onLoad1={() => openConfirmDialog("确认读取", "是否从槽位 1 读取存档？", "load1")}
+                onSave2={() => openConfirmDialog("确认保存", "是否保存到槽位 2？", "save2")}
+                onLoad2={() => openConfirmDialog("确认读取", "是否从槽位 2 读取存档？", "load2")}
+                onSave3={() => openConfirmDialog("确认保存", "是否保存到槽位 3？", "save3")}
+                onLoad3={() => openConfirmDialog("确认读取", "是否从槽位 3 读取存档？", "load3")}
               />
             ) : null}
 
@@ -286,60 +518,12 @@ const {
                 message={confirmDialog.message}
                 onCloseTop={closeConfirmDialog}
                 onCancel={closeConfirmDialog}
-                onConfirm={async () => {
-                  const action = confirmDialog.action;
-                  closeConfirmDialog();
-
-                  if (action === "save1") {
-                    await runAction(() => saveToSlot(1), "sidebar");
-                    return;
-                  }
-                  if (action === "save2") {
-                    await runAction(() => saveToSlot(2), "sidebar");
-                    return;
-                  }
-                  if (action === "save3") {
-                    await runAction(() => saveToSlot(3), "sidebar");
-                    return;
-                  }
-
-                  if (action === "load1") {
-                    await runAction(() => loadFromSlot(1), "sidebar");
-                    return;
-                  }
-                  if (action === "load2") {
-                    await runAction(() => loadFromSlot(2), "sidebar");
-                    return;
-                  }
-                  if (action === "load3") {
-                    await runAction(() => loadFromSlot(3), "sidebar");
-                    return;
-                  }
-
-                  if (action === "restart") {
-                    await runAction(restartGame, "sidebar");
-                    return;
-                  }
-
-                  if (action === "confirm-pending") {
-                    await runAction(confirmPending, "sidebar");
-                    return;
-                  }
-
-                  if (action === "endgame") {
-                    await runAction(endGameByAgreement, "sidebar");
-                    return;
-                  }
-
-                  if (action === "resign") {
-                    await runAction(resignGame, "sidebar");
-                    return;
-                  }
-                }}
+                onConfirm={handleConfirmAction}
               />
             ) : null}
           </div>
         ) : null}
+
         {payload?.game_over ? (
           <GameOverModal
             payload={payload}
@@ -347,7 +531,7 @@ const {
               openConfirmDialog("确认重开", "是否确认重新开始当前对局？", "restart")
             }
             onOpenSaveLoad={() => openModal("save-load")}
-            onExportRecord={() => runAction(exportRecord, "sidebar")}
+            onExportRecord={handleExportRecord}
             onBackToMenu={onBackToMenu}
           />
         ) : null}

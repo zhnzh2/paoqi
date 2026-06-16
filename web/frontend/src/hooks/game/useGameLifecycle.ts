@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { getState, healthCheck } from "../../api/gameApi";
+import { useEngine } from "../../engine/EngineContext";
 import type { GamePayload } from "../../types/game";
 
 type UseGameLifecycleParams = {
@@ -9,14 +9,16 @@ type UseGameLifecycleParams = {
   totalRecordPages: number;
   onOpenModal: (name: string) => void;
   onHoveredCellClear: () => void;
-  onInitLoadingChange: (value: boolean) => void;
-  onBackendOkChange: (value: boolean) => void;
   onPayloadChange: (payload: GamePayload) => void;
   onStatusMessage: (message: string) => void;
   onStatusIsError: (value: boolean) => void;
   onRecordPageChange: (value: number) => void;
 };
 
+/**
+ * 游戏生命周期 Hook —— 使用本地引擎替代 HTTP API 调用。
+ * 引擎就绪后直接本地创建/恢复对局。
+ */
 export default function useGameLifecycle({
   openLoadModalOnMount,
   payload,
@@ -24,59 +26,58 @@ export default function useGameLifecycle({
   totalRecordPages,
   onOpenModal,
   onHoveredCellClear,
-  onInitLoadingChange,
-  onBackendOkChange,
   onPayloadChange,
   onStatusMessage,
   onStatusIsError,
   onRecordPageChange
 }: UseGameLifecycleParams) {
+  const { engine, isReady } = useEngine();
+
+  // 挂载时：如果指定了打开读档弹窗，则打开
   useEffect(() => {
     if (openLoadModalOnMount) {
       onOpenModal("save-load");
     }
   }, [openLoadModalOnMount, onOpenModal]);
 
+  // 游戏结束时清除悬停
   useEffect(() => {
     if (payload?.game_over) {
       onHoveredCellClear();
     }
   }, [payload?.game_over, onHoveredCellClear]);
 
+  // 引擎就绪后初始化对局（仅在首次挂载且 payload 为空时）
   useEffect(() => {
-    async function init() {
-      onInitLoadingChange(true);
-      try {
-        const health = await healthCheck();
-        onBackendOkChange(health.ok);
+    if (!isReady || !engine || payload) {
+      return;
+    }
 
-        const state = await getState();
-        if (state.ok) {
-          onPayloadChange(state.data);
-          onStatusMessage("已连接后端。");
+    // 尝试恢复之前未完成的本地对局
+    const saved = localStorage.getItem("paoqi_current_game");
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (data.history_count > 0) {
+          const p = engine.importState(data);
+          onPayloadChange(p);
+          onStatusMessage("已恢复上次对局。");
           onStatusIsError(false);
-        } else {
-          onStatusMessage(state.message);
-          onStatusIsError(true);
+          return;
         }
-      } catch (error) {
-        onBackendOkChange(false);
-        onStatusMessage(`初始化失败：${String(error)}`);
-        onStatusIsError(true);
-      } finally {
-        onInitLoadingChange(false);
+      } catch {
+        // 恢复失败，创建新对局
       }
     }
 
-    init();
-  }, [
-    onInitLoadingChange,
-    onBackendOkChange,
-    onPayloadChange,
-    onStatusMessage,
-    onStatusIsError
-  ]);
+    // 创建全新对局
+    const p = engine.newGame();
+    onPayloadChange(p);
+    onStatusMessage("引擎就绪，对局已开始。");
+    onStatusIsError(false);
+  }, [isReady, engine, payload, onPayloadChange, onStatusMessage, onStatusIsError]);
 
+  // 棋谱翻页越界修正
   useEffect(() => {
     if (recordPage > totalRecordPages) {
       onRecordPageChange(totalRecordPages);

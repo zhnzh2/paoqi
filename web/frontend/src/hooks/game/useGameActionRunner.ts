@@ -17,17 +17,24 @@ export default function useGameActionRunner({
   const isBoardBusy = busyScope === "board";
   const isSidebarBusy = busyScope === "sidebar";
 
+  /**
+   * 包装引擎调用（同步结果 → Promise）。
+   * 引擎调用是同步的（<1ms），但保留 async 接口以便与现有调用方式兼容。
+   * action() 返回 {ok, message, payload?} 或 {ok, message, data?} 结构。
+   */
   async function runAction(
-    action: () => Promise<any>,
+    action: () => any,
     scope: "board" | "sidebar" = "sidebar"
   ) {
     setBusyScope(scope);
     try {
-      const res = await action();
+      const res = action();
       if (res.ok) {
         onStatusMessage(res.message);
         onStatusIsError(false);
-        if (res.data) {
+        if (res.payload) {
+          onSuccessPayload(res.payload);
+        } else if (res.data) {
           onSuccessPayload(res.data);
         }
       } else {
@@ -35,7 +42,7 @@ export default function useGameActionRunner({
         onStatusIsError(true);
       }
     } catch (error) {
-      onStatusMessage(`请求失败：${String(error)}`);
+      onStatusMessage(`操作失败：${String(error)}`);
       onStatusIsError(true);
     } finally {
       setBusyScope("none");

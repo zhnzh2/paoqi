@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/81616/.github/**)",
+      "Bash(node web/frontend/scripts/bundleCoreModules.js)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(rm -f src/engine/coreModules.ts)",
+      "Bash(npm run *)"
+    ]
+  }
+}

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { previewAction } from "../../api/gameApi";
+import { useMemo } from "react";
+import { useEngine } from "../../engine/EngineContext";
 import { findActionByCell } from "../../utils/gameBoardUtils";
 import type { GamePayload } from "../../types/game";
 
@@ -21,81 +21,64 @@ export default function useHoverPreview({
   modalCount,
   showHoverPreview
 }: UseHoverPreviewParams) {
-  const [previewBoardData, setPreviewBoardData] = useState<BoardCell[][] | null>(null);
-  const previewRequestIdRef = useRef(0);
+  const { engine, isReady } = useEngine();
 
-  useEffect(() => {
-    if (payload?.game_over) {
-      setPreviewBoardData(null);
-    }
-  }, [payload?.game_over]);
-
-  useEffect(() => {
-    async function runPreview() {
-      if (!showHoverPreview) {
-        setPreviewBoardData(null);
-        return;
-      }
-
-      if (!payload || !hoveredCell) {
-        setPreviewBoardData(null);
-        return;
-      }
-
-      if (busyScope !== "none" || modalCount > 0 || payload.game_over || payload.has_pending_auto_action) {
-        setPreviewBoardData(null);
-        return;
-      }
-
-      const action = findActionByCell(
-        payload.legal_actions,
-        payload.phase,
-        hoveredCell.x,
-        hoveredCell.y
-      );
-
-      if (!action) {
-        setPreviewBoardData(null);
-        return;
-      }
-
-      const shouldPreview =
-        payload.phase === "drop" ||
-        payload.phase === "eat" ||
-        payload.phase === "fire" ||
-        payload.phase === "muzzle";
-
-      if (!shouldPreview) {
-        setPreviewBoardData(null);
-        return;
-      }
-
-      const requestId = ++previewRequestIdRef.current;
-
-      try {
-        const res = await previewAction(action);
-
-        if (requestId !== previewRequestIdRef.current) {
-          return;
-        }
-
-        if (res.ok && res.preview_snapshot && res.preview_snapshot.board) {
-          setPreviewBoardData(res.preview_snapshot.board);
-        } else {
-          setPreviewBoardData(null);
-        }
-      } catch {
-        if (requestId === previewRequestIdRef.current) {
-          setPreviewBoardData(null);
-        }
-      }
+  /**
+   * 使用本地引擎同步计算预览棋盘。
+   * engine.previewAction() 是同步调用（<1ms），直接用 useMemo。
+   * 只有当引擎未就绪时才返回 null（由 GamePage 的 loading 状态兜底）。
+   */
+  const previewBoardData: BoardCell[][] | null = useMemo(() => {
+    // 基础条件检查
+    if (!showHoverPreview) {
+      return null;
     }
 
-    runPreview();
-  }, [payload, hoveredCell, busyScope, modalCount, showHoverPreview]);
+    if (!payload || !hoveredCell) {
+      return null;
+    }
+
+    if (busyScope !== "none" || modalCount > 0 || payload.game_over || payload.has_pending_auto_action) {
+      return null;
+    }
+
+    if (!isReady || !engine) {
+      return null;
+    }
+
+    const action = findActionByCell(
+      payload.legal_actions,
+      payload.phase,
+      hoveredCell.x,
+      hoveredCell.y
+    );
+
+    if (!action) {
+      return null;
+    }
+
+    const shouldPreview =
+      payload.phase === "drop" ||
+      payload.phase === "eat" ||
+      payload.phase === "fire" ||
+      payload.phase === "muzzle";
+
+    if (!shouldPreview) {
+      return null;
+    }
+
+    // 本地同步计算预览 —— 无网络延迟！
+    const res = engine.previewAction(action);
+    if (res.ok && res.preview_snapshot && res.preview_snapshot.board) {
+      return res.preview_snapshot.board;
+    }
+
+    return null;
+  }, [payload, hoveredCell, busyScope, modalCount, showHoverPreview, engine, isReady]);
 
   return {
     previewBoardData,
-    setPreviewBoardData
+    // 保留 setPreviewBoardData 以便接口兼容（本地引擎不再需要外部设置）
+    setPreviewBoardData: (_: BoardCell[][] | null) => {},
   };
 }
