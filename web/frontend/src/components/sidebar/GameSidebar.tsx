@@ -84,9 +84,9 @@ export default function GameSidebar({
               <div><strong>回合数：</strong>{payload.turn_number}</div>
               <div><strong>游戏结束：</strong>{payload.game_over ? "是" : "否"}</div>
               <div><strong>胜方：</strong>{payload.winner ?? "无"}</div>
-              <div><strong>合法动作数：</strong>{payload.legal_actions.length}</div>
+              <div><strong>合法动作数：</strong>{payload.legal_actions?.length ?? 0}</div>
               <div><strong>有待确认自动动作：</strong>{payload.has_pending_auto_action ? "是" : "否"}</div>
-              <div><strong>棋谱条目数：</strong>{payload.history.length}</div>
+              <div><strong>棋谱条目数：</strong>{payload.history?.length ?? 0}</div>
             </div>
           ) : (
             <div>暂无数据</div>

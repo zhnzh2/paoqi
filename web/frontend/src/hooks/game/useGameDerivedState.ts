@@ -36,7 +36,7 @@ export default function useGameDerivedState({
   showCannonHoverEnhance
 }: UseGameDerivedStateParams) {
   const totalRecordPages = useMemo(() => {
-    const total = payload?.history.length ?? 0;
+    const total = payload?.history?.length ?? 0;
     return Math.max(1, Math.ceil(total / recordPageSize));
   }, [payload, recordPageSize]);
 

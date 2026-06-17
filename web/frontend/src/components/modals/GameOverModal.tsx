@@ -39,7 +39,7 @@ export default function GameOverModal({
           </div>
           <div className="gameover-summary-item">
             <span>棋谱条目</span>
-            <strong>{payload.history.length}</strong>
+            <strong>{payload.history?.length ?? 0}</strong>
           </div>
         </div>
 

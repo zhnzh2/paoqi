@@ -17,7 +17,7 @@ const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
 const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
 
 /** 引擎版本号——修改此值会触发清理所有旧缓存和游戏数据 */
-const ENGINE_VERSION = "1.0.1";
+const ENGINE_VERSION = "1.0.2";
 const LS_VERSION_KEY = "paoqi_engine_version";
 const PYODIDE_IDB_NAME = "/pyodide";
 
