@@ -21,6 +21,7 @@ type GameBoardSectionProps = {
   onEndgame: () => void;
   onResign: () => void;
   onBackToMenu: () => void;
+  title?: string;
 };
 
 export default function GameBoardSection({
@@ -39,11 +40,12 @@ export default function GameBoardSection({
   onCellLeave,
   onEndgame,
   onResign,
-  onBackToMenu
+  onBackToMenu,
+  title,
 }: GameBoardSectionProps) {
   return (
     <div className="left-column">
-      <h1>炮棋 Web 原型</h1>
+      <h1>{title ?? "炮棋 Web 原型"}</h1>
 
       <Board
         boardData={boardData}

@@ -52,6 +52,10 @@ Thumbs.db
 # Web frontend vite cache
 web/frontend/.vite/
 
+# User data (local storage)
+data/*
+!data/.gitkeep
+
 docs/
 
 Comment.txt

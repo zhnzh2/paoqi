@@ -10,6 +10,7 @@ type SettingsModalProps = {
   showArrowHints: boolean;
   showHoverPreview: boolean;
   showCannonHoverEnhance: boolean;
+  showRoomInfo?: boolean;
   onCloseTop: () => void;
   onCloseDirect: () => void;
   onChangeShowRecordPanel: (value: boolean) => void;
@@ -22,6 +23,7 @@ type SettingsModalProps = {
   onChangeShowArrowHints: (value: boolean) => void;
   onChangeShowHoverPreview: (value: boolean) => void;
   onChangeShowCannonHoverEnhance: (value: boolean) => void;
+  onChangeShowRoomInfo?: (value: boolean) => void;
 };
 
 export default function SettingsModal({
@@ -36,6 +38,7 @@ export default function SettingsModal({
   showArrowHints,
   showHoverPreview,
   showCannonHoverEnhance,
+  showRoomInfo,
   onCloseTop,
   onCloseDirect,
   onChangeShowRecordPanel,
@@ -47,7 +50,8 @@ export default function SettingsModal({
   onChangeShowFireHighlight,
   onChangeShowArrowHints,
   onChangeShowHoverPreview,
-  onChangeShowCannonHoverEnhance
+  onChangeShowCannonHoverEnhance,
+  onChangeShowRoomInfo,
 }: SettingsModalProps) {
   return (
     <div
@@ -90,6 +94,17 @@ export default function SettingsModal({
               />
               右栏紧凑模式
             </label>
+
+            {showRoomInfo !== undefined && onChangeShowRoomInfo ? (
+              <label className="settings-item">
+                <input
+                  type="checkbox"
+                  checked={showRoomInfo}
+                  onChange={(e) => onChangeShowRoomInfo(e.target.checked)}
+                />
+                显示房间信息（棋谱下方）
+              </label>
+            ) : null}
           </div>
         </div>
 

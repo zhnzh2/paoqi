@@ -26,6 +26,10 @@ type GameSidebarProps = {
   onToggleRecordCollapsed: () => void;
   onPrevRecordPage: () => void;
   onNextRecordPage: () => void;
+  hideRestart?: boolean;
+  hideSaveLoad?: boolean;
+  chatSlot?: React.ReactNode;
+  roomInfoSlot?: React.ReactNode;
 };
 
 export default function GameSidebar({
@@ -52,7 +56,11 @@ export default function GameSidebar({
   onConfirmPending,
   onToggleRecordCollapsed,
   onPrevRecordPage,
-  onNextRecordPage
+  onNextRecordPage,
+  hideRestart,
+  hideSaveLoad,
+  chatSlot,
+  roomInfoSlot,
 }: GameSidebarProps) {
   return (
     <div className={`right-column ${compactSidebar ? "right-column-compact" : ""}`}>
@@ -68,10 +76,14 @@ export default function GameSidebar({
 
         <div className="section button-grid">
           <button onClick={onNewGame} disabled={initLoading || isSidebarBusy}>开始新对局</button>
-          <button onClick={onRestart} disabled={initLoading || isSidebarBusy}>重开</button>
+          {!hideRestart ? (
+            <button onClick={onRestart} disabled={initLoading || isSidebarBusy}>重开</button>
+          ) : null}
           <button onClick={onUndo} disabled={initLoading || isSidebarBusy}>撤销</button>
           <button onClick={onExportRecord} disabled={initLoading || isSidebarBusy}>导出棋谱</button>
-          <button onClick={onOpenSaveLoad} disabled={initLoading || isSidebarBusy}>存档</button>
+          {!hideSaveLoad ? (
+            <button onClick={onOpenSaveLoad} disabled={initLoading || isSidebarBusy}>存档</button>
+          ) : null}
           <button onClick={onOpenSettings} disabled={initLoading || isSidebarBusy}>设置</button>
         </div>
 
@@ -109,6 +121,11 @@ export default function GameSidebar({
           </div>
         ) : null}
 
+        {/* 聊天框（棋谱上方） */}
+        {chatSlot ? (
+          <div className="section">{chatSlot}</div>
+        ) : null}
+
         {showRecordPanel ? (
           <RecordPanel
             recordCollapsed={recordCollapsed}
@@ -120,6 +137,11 @@ export default function GameSidebar({
             onPrevPage={onPrevRecordPage}
             onNextPage={onNextRecordPage}
           />
+        ) : null}
+
+        {/* 房间信息（棋谱下方） */}
+        {roomInfoSlot ? (
+          <div className="section">{roomInfoSlot}</div>
         ) : null}
       </div>
     </div>

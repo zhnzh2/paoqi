@@ -12,6 +12,7 @@ export default function useGameViewOptions() {
   const [showCannonHoverEnhance, setShowCannonHoverEnhance] = useState<boolean>(true);
   const [compactSidebar, setCompactSidebar] = useState<boolean>(false);
   const [recordCollapsed, setRecordCollapsed] = useState<boolean>(false);
+  const [showRoomInfo, setShowRoomInfo] = useState<boolean>(false);
 
   return {
     showRecordPanel,
@@ -35,6 +36,8 @@ export default function useGameViewOptions() {
     compactSidebar,
     setCompactSidebar,
     recordCollapsed,
-    setRecordCollapsed
+    setRecordCollapsed,
+    showRoomInfo,
+    setShowRoomInfo,
   };
 }

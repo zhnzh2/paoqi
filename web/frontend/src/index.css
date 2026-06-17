@@ -1075,3 +1075,1236 @@ h2 {
   color: #b9c3d8;
   font-size: 13px;
 }
+
+/* ===================== 用户信息栏 ===================== */
+
+.user-bar {
+  position: absolute;
+  top: 20px;
+  right: 28px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-bar-name {
+  color: #bcc5db;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.user-bar-logout {
+  padding: 6px 16px;
+  font-size: 13px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid #4d5566;
+  color: #95a3bb;
+  cursor: pointer;
+}
+
+.user-bar-logout:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #d0d7e8;
+}
+
+.user-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-bar-role {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.user-bar-role-owner {
+  background: #4a3020;
+  color: #f5c060;
+  border: 1px solid #6b4a28;
+}
+
+.user-bar-role-admin {
+  background: #1f3040;
+  color: #6db3e0;
+  border: 1px solid #305570;
+}
+
+/* ===================== 认证页面（登录 / 注册） ===================== */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top, rgba(111, 168, 230, 0.12), transparent 36%),
+    linear-gradient(180deg, #1c1e23 0%, #17191d 100%);
+  padding: 32px 24px;
+}
+
+.auth-loading {
+  color: #8896b4;
+  font-size: 16px;
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  padding: 38px 34px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #2c3139 0%, #232830 100%);
+  border: 1px solid #434c5d;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #f7f9fd;
+  margin: 0 0 6px;
+}
+
+.auth-subtitle {
+  text-align: center;
+  color: #8896b4;
+  font-size: 15px;
+  margin: 0 0 28px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #bcc5db;
+}
+
+.auth-input,
+.auth-textarea {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #434c5d;
+  background: #1c1f26;
+  color: #f4f4f4;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.auth-input:focus,
+.auth-textarea:focus {
+  border-color: #5d87ca;
+}
+
+.auth-input:disabled,
+.auth-textarea:disabled {
+  opacity: 0.6;
+}
+
+.auth-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.auth-error {
+  background: #3d2020;
+  border: 1px solid #6b4040;
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #f5a0a0;
+  font-size: 14px;
+}
+
+.auth-button {
+  min-height: 48px;
+  padding: 0 24px;
+  font-size: 16px;
+  font-weight: 700;
+  border: 1px solid #5d87ca;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #446aa5 0%, #38598e 100%);
+  color: #fff;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.15s;
+}
+
+.auth-button:hover {
+  background: linear-gradient(180deg, #5077b4 0%, #42659f 100%);
+}
+
+.auth-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.auth-link-row {
+  margin-top: 22px;
+  text-align: center;
+  color: #75829a;
+  font-size: 14px;
+}
+
+.auth-link {
+  color: #7ea5da;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+/* ===================== 用户主页 ===================== */
+
+.user-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  background: #1e1f22;
+}
+
+/* --- 左侧栏 --- */
+
+.user-sidebar {
+  background: #1a1c21;
+  border-right: 1px solid #333946;
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-sidebar-header {
+  padding: 0 20px;
+  margin-bottom: 24px;
+}
+
+.user-back-button {
+  background: transparent;
+  border: 1px solid #3b4252;
+  color: #95a3bb;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.user-back-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #d0d7e8;
+}
+
+.user-sidebar-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px 24px;
+  border-bottom: 1px solid #2a2f38;
+  margin-bottom: 12px;
+}
+
+.user-avatar-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #446aa5 0%, #38598e 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.user-sidebar-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #eef3ff;
+  margin-bottom: 6px;
+}
+
+.user-sidebar-role {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #2a3040;
+  color: #95a3bb;
+  border: 1px solid #3b4252;
+}
+
+.user-sidebar-role-owner {
+  background: #4a3020;
+  color: #f5c060;
+  border-color: #6b4a28;
+}
+
+.user-sidebar-role-admin {
+  background: #1f3040;
+  color: #6db3e0;
+  border-color: #305570;
+}
+
+/* --- 侧栏导航 --- */
+
+.user-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 0 12px;
+}
+
+.user-nav-item {
+  background: transparent;
+  border: none;
+  color: #8896b4;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.user-nav-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #d0d7e8;
+}
+
+.user-nav-item-active {
+  background: #2a3140;
+  color: #eef3ff;
+}
+
+/* --- 右侧内容区 --- */
+
+.user-content {
+  padding: 32px 40px;
+  overflow-y: auto;
+}
+
+.user-content-loading,
+.user-content-error {
+  color: #8896b4;
+  font-size: 16px;
+  padding: 40px 0;
+}
+
+.user-content-error {
+  color: #f5a0a0;
+}
+
+/* --- 面板 --- */
+
+.user-panel {
+  max-width: 680px;
+}
+
+.user-panel-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: #f7f9fd;
+  margin: 0 0 6px;
+}
+
+.user-panel-desc {
+  color: #75829a;
+  font-size: 14px;
+  margin: 0 0 28px;
+}
+
+/* --- 信息网格 --- */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.info-item {
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #262a31;
+  border: 1px solid #363c49;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-label {
+  font-size: 13px;
+  color: #75829a;
+  font-weight: 600;
+}
+
+.info-value {
+  font-size: 16px;
+  color: #eef3ff;
+  font-weight: 700;
+}
+
+/* --- 信息分区 --- */
+
+.info-section {
+  margin-bottom: 28px;
+  padding: 22px 24px;
+  border-radius: 14px;
+  background: #262a31;
+  border: 1px solid #363c49;
+}
+
+.info-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.info-section-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #d0d7e8;
+  margin: 0;
+}
+
+.info-edit-button {
+  background: transparent;
+  border: 1px solid #4d5566;
+  color: #95a3bb;
+  padding: 5px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.info-edit-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #d0d7e8;
+}
+
+.info-intro-text {
+  color: #bcc5db;
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* --- 编辑表单 --- */
+
+.info-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-textarea,
+.info-input {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #434c5d;
+  background: #1c1f26;
+  color: #f4f4f4;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.info-textarea:focus,
+.info-input:focus {
+  border-color: #5d87ca;
+}
+
+.info-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-field-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #95a3bb;
+}
+
+.info-edit-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.info-save-button {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid #5d87ca;
+  background: linear-gradient(180deg, #446aa5 0%, #38598e 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.info-save-button:hover {
+  background: linear-gradient(180deg, #5077b4 0%, #42659f 100%);
+}
+
+.info-save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.info-cancel-button {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid #4d5566;
+  background: transparent;
+  color: #95a3bb;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.info-cancel-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #d0d7e8;
+}
+
+.info-message {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.info-message-error {
+  background: #3d2020;
+  border: 1px solid #6b4040;
+  color: #f5a0a0;
+}
+
+.info-message-success {
+  background: #1f3030;
+  border: 1px solid #305050;
+  color: #70c0a0;
+}
+
+/* --- 设置面板 --- */
+
+.settings-group {
+  margin-bottom: 24px;
+}
+
+.settings-group-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #8896b4;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333946;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #c5cdde;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.settings-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.settings-item input[type="checkbox"] {
+  accent-color: #5d87ca;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.settings-item input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.settings-actions {
+  margin-top: 24px;
+}
+
+/* --- 用户名链接 --- */
+
+.user-bar-name-link {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer;
+  color: #bcc5db;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.user-bar-name-link:hover {
+  color: #eef3ff;
+  text-decoration: underline;
+}
+
+/* ===================== 房间选择页 ===================== */
+
+.room-selection-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top, rgba(111, 168, 230, 0.12), transparent 36%),
+    linear-gradient(180deg, #1c1e23 0%, #17191d 100%);
+  padding: 32px 24px;
+  gap: 32px;
+}
+
+.room-selection-header {
+  text-align: center;
+}
+
+.room-selection-header h1 {
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #f7f9fd;
+  margin: 0;
+}
+
+.room-selection-header p {
+  margin-top: 8px;
+  color: #8896b4;
+  font-size: 16px;
+}
+
+.room-error {
+  background: #3d2020;
+  border: 1px solid #6b4040;
+  border-radius: 10px;
+  padding: 10px 18px;
+  color: #f5a0a0;
+  font-size: 14px;
+  max-width: 600px;
+  text-align: center;
+}
+
+.room-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  width: min(760px, 100%);
+}
+
+.room-card {
+  width: 100%;
+  padding: 30px 28px 26px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #2c3139 0%, #232830 100%);
+  border: 1px solid #434c5d;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+}
+
+.room-card-create {
+  border-color: #4f6d9a;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(68, 106, 165, 0.25);
+}
+
+.room-card h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #eef3ff;
+  margin: 0 0 8px;
+}
+
+.room-card p {
+  font-size: 15px;
+  color: #95a3bb;
+  line-height: 1.7;
+  margin: 0 0 20px;
+  flex: 1;
+}
+
+.room-card-button {
+  min-height: 44px;
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s;
+}
+
+.room-card-button-primary {
+  background: linear-gradient(180deg, #446aa5 0%, #38598e 100%);
+  border-color: #5d87ca;
+  color: #fff;
+}
+
+.room-card-button-primary:hover {
+  background: linear-gradient(180deg, #5077b4 0%, #42659f 100%);
+}
+
+.room-card-button-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 输入房间码加入 */
+.join-by-code {
+  margin-bottom: 20px;
+}
+
+.join-code-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8896b4;
+  margin-bottom: 8px;
+}
+
+.join-code-row {
+  display: flex;
+  gap: 10px;
+}
+
+.join-code-input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #434c5d;
+  background: #1c1f26;
+  color: #f4f4f4;
+  font-size: 18px;
+  font-family: "Courier New", monospace;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.join-code-input:focus {
+  border-color: #5d87ca;
+}
+
+.join-code-input::placeholder {
+  letter-spacing: 1px;
+  color: #556;
+  font-size: 14px;
+}
+
+/* 房间列表 */
+.room-list-section {
+  border-top: 1px solid #333946;
+  padding-top: 16px;
+}
+
+.room-refresh-button {
+  background: transparent;
+  border: 1px solid #3b4252;
+  color: #95a3bb;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.room-refresh-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #d0d7e8;
+}
+
+.room-list-empty {
+  color: #5a6478;
+  font-size: 14px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.room-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #1f232a;
+  border: 1px solid #333946;
+}
+
+.room-list-item-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.room-list-code {
+  font-family: "Courier New", monospace;
+  font-size: 16px;
+  font-weight: 800;
+  color: #eef3ff;
+  letter-spacing: 2px;
+}
+
+.room-list-players {
+  font-size: 13px;
+  color: #95a3bb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-list-count {
+  font-size: 12px;
+  color: #5a6478;
+  white-space: nowrap;
+}
+
+.room-list-join-button {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid #5d87ca;
+  background: linear-gradient(180deg, #446aa5 0%, #38598e 100%);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.room-list-join-button:hover {
+  background: linear-gradient(180deg, #5077b4 0%, #42659f 100%);
+}
+
+.room-list-join-button:disabled {
+  background: #303540;
+  border-color: #3b4352;
+  color: #5a6478;
+  cursor: not-allowed;
+}
+
+.room-back-button {
+  background: transparent;
+  border: 1px solid #3b4252;
+  color: #95a3bb;
+  padding: 8px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.room-back-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #d0d7e8;
+}
+
+/* ===================== 房间对局页 ===================== */
+
+.room-game-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #1e1f22;
+}
+
+/* 房间信息栏（精简版） */
+.room-info-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 20px;
+  background: #1a1c21;
+  border-bottom: 1px solid #333946;
+  min-height: 38px;
+}
+
+.room-info-bar-left {
+  flex: 1;
+}
+
+.room-info-bar-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #bcc5db;
+}
+
+.room-info-bar-center {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.room-info-bar-code {
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  font-weight: 800;
+  color: #eef3ff;
+  letter-spacing: 3px;
+  cursor: pointer;
+  padding: 2px 10px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.room-info-bar-code:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.room-info-bar-right {
+  flex: 1;
+  text-align: right;
+}
+
+.room-info-turn-indicator {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8896b4;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.room-info-disconnected {
+  font-size: 12px;
+  color: #e5a750;
+  font-weight: 600;
+}
+
+/* ===================== 聊天面板 ===================== */
+
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.chat-panel-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #8896b4;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #333946;
+}
+
+.chat-message-list {
+  width: 100%;
+  max-width: 100%;
+  height: 140px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+  margin-bottom: 8px;
+  background: #1a1c21;
+  border-radius: 8px;
+  border: 1px solid #2a2f38;
+}
+
+.chat-empty {
+  color: #4a5568;
+  font-size: 13px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.chat-message {
+  padding: 3px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+.chat-message-sender {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chat-message-red .chat-message-sender {
+  color: #e08080;
+}
+
+.chat-message-blue .chat-message-sender {
+  color: #6fa8e6;
+}
+
+.chat-message-text {
+  color: #c5cdde;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #434c5d;
+  background: #1c1f26;
+  color: #f4f4f4;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.chat-input:focus {
+  border-color: #5d87ca;
+}
+
+.chat-input:disabled {
+  opacity: 0.5;
+}
+
+.chat-send-button {
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid #5d87ca;
+  background: linear-gradient(180deg, #446aa5 0%, #38598e 100%);
+  color: #fff;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chat-send-button:hover {
+  background: linear-gradient(180deg, #5077b4 0%, #42659f 100%);
+}
+
+.chat-send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-char-count {
+  text-align: right;
+  font-size: 11px;
+  color: #556;
+  margin-top: 2px;
+}
+
+/* ===================== 房间信息面板 ===================== */
+
+.room-info-panel {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.room-info-panel-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #8896b4;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #333946;
+}
+
+.room-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  gap: 8px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.room-info-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #95a3bb;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.room-info-value {
+  font-size: 13px;
+  color: #c5cdde;
+  text-align: right;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+.room-info-code-value {
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  font-weight: 800;
+  color: #eef3ff;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-align: right;
+  word-break: break-all;
+}
+
+.room-info-code-value:hover {
+  color: #6fa8e6;
+}
+
+.room-info-status {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.room-info-status-online {
+  color: #6fcf8a;
+  background: rgba(76, 175, 120, 0.12);
+}
+
+.room-info-status-offline {
+  color: #e5a750;
+  background: rgba(229, 167, 80, 0.12);
+}
+
+/* 等待对手界面 */
+.room-waiting {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.room-waiting-card {
+  text-align: center;
+  padding: 48px 40px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #2c3139 0%, #232830 100%);
+  border: 1px solid #434c5d;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+  max-width: 440px;
+  width: 100%;
+}
+
+.room-waiting-card h2 {
+  font-size: 28px;
+  font-weight: 900;
+  color: #f7f9fd;
+  margin: 0 0 16px;
+}
+
+.room-waiting-code {
+  font-size: 18px;
+  color: #95a3bb;
+  margin: 0 0 12px;
+}
+
+.room-waiting-code strong {
+  font-family: "Courier New", monospace;
+  font-size: 28px;
+  letter-spacing: 4px;
+  color: #eef3ff;
+}
+
+.room-waiting-hint {
+  color: #6a7590;
+  font-size: 14px;
+  margin: 0 0 28px;
+}
+
+.room-waiting-copy {
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1px solid #5d87ca;
+  background: linear-gradient(180deg, #446aa5 0%, #38598e 100%);
+  color: #fff;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.room-waiting-copy:hover {
+  background: linear-gradient(180deg, #5077b4 0%, #42659f 100%);
+}
+
+.room-waiting-leave {
+  display: block;
+  margin: 0 auto;
+  background: transparent;
+  border: 1px solid #3b4252;
+  color: #95a3bb;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.room-waiting-leave:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #d0d7e8;
+}

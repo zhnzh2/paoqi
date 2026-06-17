@@ -1,6 +1,30 @@
 from __future__ import annotations
 
+import uuid
+
 from core.game import Game
+
+
+class AuthSession:
+    """基于内存的认证令牌存储 —— token 到 uid 的映射。"""
+
+    def __init__(self) -> None:
+        self._tokens: dict[str, int] = {}
+
+    def create_token(self, uid: int) -> str:
+        """为用户创建一个新的认证令牌。"""
+        token = str(uuid.uuid4())
+        self._tokens[token] = uid
+        return token
+
+    def validate_token(self, token: str) -> int | None:
+        """验证令牌，返回对应的 uid 或 None。"""
+        return self._tokens.get(token)
+
+    def revoke_token(self, token: str) -> None:
+        """撤销令牌。"""
+        self._tokens.pop(token, None)
+
 
 class LocalGameSession:
     DEFAULT_SESSION_ID = "default"

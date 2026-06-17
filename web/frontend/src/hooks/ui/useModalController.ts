@@ -10,7 +10,8 @@ export type ConfirmActionType =
   | "restart"
   | "resign"
   | "endgame"
-  | "confirm-pending";
+  | "confirm-pending"
+  | "leave";
 
 export type ConfirmDialogState = {
   title: string;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import UserBar from "../layout/UserBar";
 
 const LS_CURRENT_GAME = "paoqi_current_game";
 
@@ -33,6 +34,8 @@ export default function MenuPage() {
 
   return (
     <div className="menu-page">
+      <UserBar />
+
       <div className="menu-header">
         <h1 className="menu-title">炮棋</h1>
         <p className="menu-subtitle">选择游戏模式，开始对局</p>
@@ -71,10 +74,10 @@ export default function MenuPage() {
           </div>
         </div>
 
-        {/* 联机模式 — 开发中 */}
-        <div className="mode-card mode-card-disabled">
+        {/* 联机模式 — 已上线 */}
+        <div className="mode-card mode-card-active">
           <div className="mode-status">
-            <span className="mode-badge mode-badge-dev">开发中</span>
+            <span className="mode-badge mode-badge-live">已上线</span>
           </div>
           <h2 className="mode-name">联机模式</h2>
           <p className="mode-desc">
@@ -83,8 +86,13 @@ export default function MenuPage() {
             支持房间创建、加入和观战功能。
           </p>
           <div className="mode-actions">
-            <button className="mode-button mode-button-disabled" disabled>
-              敬请期待
+            <button
+              className="mode-button mode-button-primary"
+              onClick={() => {
+                navigate("/rooms");
+              }}
+            >
+              进入模式
             </button>
           </div>
         </div>
