@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useEngine } from "../engine/EngineContext";
 import type { GamePayload } from "../types/game";
 import ConfirmModal from "../components/modals/ConfirmModal";
@@ -21,11 +22,11 @@ const LS_CURRENT_GAME = "paoqi_current_game";
 const LS_SAVE_SLOT_PREFIX = "paoqi_save_slot_";
 
 type GamePageProps = {
-  onBackToMenu: () => void;
   openLoadModalOnMount?: boolean;
 };
 
-export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }: GamePageProps) {
+export default function GamePage({ openLoadModalOnMount = false }: GamePageProps) {
+  const navigate = useNavigate();
   const { engine, isReady } = useEngine();
 
   const [payload, setPayload] = useState<GamePayload | null>(null);
@@ -35,8 +36,8 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
   const [recordPage, setRecordPage] = useState<number>(1);
   const recordPageSize = 20;
 
-  // 自动保存去重：跟踪上次已保存的 history 长度
-  const lastSavedHistoryLen = useRef(0);
+  // 自动保存去重：跟踪上次写入的完整导出状态
+  const lastSavedState = useRef<string | null>(null);
 
   const {
     showRecordPanel,
@@ -81,7 +82,10 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
     isSidebarBusy,
     runAction
   } = useGameActionRunner({
-    onSuccessPayload: setPayload,
+    onSuccessPayload: (p: GamePayload) => {
+      setPayload(p);
+      autoSave(p);
+    },
     onStatusMessage: setStatusMessage,
     onStatusIsError: setStatusIsError
   });
@@ -160,13 +164,20 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
 
   function autoSave(p: GamePayload) {
     if (!engine || !isReady) return;
-    const histLen = p.history?.length ?? 0;
-    if (histLen === lastSavedHistoryLen.current) return;
-    lastSavedHistoryLen.current = histLen;
+
+    const shouldRemember = (p.history?.length ?? 0) > 0 || Boolean(p.game_over);
+    if (!shouldRemember) {
+      lastSavedState.current = null;
+      localStorage.removeItem(LS_CURRENT_GAME);
+      return;
+    }
 
     try {
       const state = engine.exportState();
-      localStorage.setItem(LS_CURRENT_GAME, JSON.stringify(state));
+      const serialized = JSON.stringify(state);
+      if (serialized === lastSavedState.current) return;
+      lastSavedState.current = serialized;
+      localStorage.setItem(LS_CURRENT_GAME, serialized);
     } catch {
       // localStorage 写入失败（存储满等），静默忽略
     }
@@ -183,7 +194,7 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
     if (!engine) return;
     runEngineOp(() => {
       const p = engine.newGame();
-      lastSavedHistoryLen.current = 0;
+      lastSavedState.current = null;
       localStorage.removeItem(LS_CURRENT_GAME);
       return { ok: true, message: "已开始新对局。", payload: p };
     });
@@ -246,7 +257,6 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
         try {
           const data = JSON.parse(raw);
           const p = engine.importState(data);
-          lastSavedHistoryLen.current = p.history?.length ?? 0;
           return { ok: true, message: `已从槽位 ${slot} 载入对局。`, payload: p };
         } catch {
           return { ok: false, message: "存档数据损坏，无法读取。" };
@@ -301,7 +311,7 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
       case "restart":
         runEngineOp(() => {
           const p = engine.restart();
-          lastSavedHistoryLen.current = 0;
+          lastSavedState.current = null;
           localStorage.removeItem(LS_CURRENT_GAME);
           return { ok: true, message: "已重新开始对局。", payload: p };
         });
@@ -332,7 +342,7 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
           fontFamily: "sans-serif",
           background: "#1a1a1a",
         }}>
-          正在准备对局...
+          正在准备对局…
         </div>
       </div>
     );
@@ -359,7 +369,7 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
           onCellLeave={handleBoardCellLeave}
           onEndgame={handleEndGame}
           onResign={handleResign}
-          onBackToMenu={onBackToMenu}
+          onBackToMenu={() => navigate("/")}
         />
 
         <GameSidebar
@@ -454,7 +464,7 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
             }
             onOpenSaveLoad={() => openModal("save-load")}
             onExportRecord={handleExportRecord}
-            onBackToMenu={onBackToMenu}
+            onBackToMenu={() => navigate("/")}
           />
         ) : null}
       </div>

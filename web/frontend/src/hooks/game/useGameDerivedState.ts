@@ -50,7 +50,17 @@ export default function useGameDerivedState({
     if (!payload?.snapshot?.board) {
       return buildEmptyBoard();
     }
-    return payload.snapshot.board;
+    // 将 PyProxy 二维列表转为纯 JS 二维数组，
+    // 同时把 Python None（Pyodide 会转成 undefined）统一为 null
+    const raw = payload.snapshot.board;
+    try {
+      return Array.from(raw, (row: any) =>
+        Array.from(row, (cell: any) => (cell ?? null))
+      );
+    } catch {
+      // Array.from 可能对某些 PyProxy 不适用，回退到原始数据
+      return raw;
+    }
   }, [payload]);
 
   const highlightedCells = useMemo(() => {

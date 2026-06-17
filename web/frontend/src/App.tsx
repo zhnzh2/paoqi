@@ -1,125 +1,51 @@
-import { useEffect, useState } from "react";
+import { Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import { EngineProvider, useEngine, EngineLoadingScreen } from "./engine/EngineContext";
 import GamePage from "./pages/GamePage";
 import MenuPage from "./components/menu/MenuPage";
+import ComingSoonPage from "./pages/ComingSoonPage";
 
-type MenuMeta = {
-  can_continue: boolean;
-  slots: Array<{
-    slot: number;
-    exists: boolean;
-    updated_at: number | null;
-  }>;
-  game_over: boolean;
-  history_count: number;
-};
-
-const LS_CURRENT_GAME = "paoqi_current_game";
-const LS_SAVE_SLOT_PREFIX = "paoqi_save_slot_";
-
-function buildLocalMenuMeta(): MenuMeta {
-  let can_continue = false;
-  let game_over = false;
-  let history_count = 0;
-
-  const currentRaw = localStorage.getItem(LS_CURRENT_GAME);
-  if (currentRaw) {
-    try {
-      const data = JSON.parse(currentRaw);
-      history_count = data.history?.length ?? 0;
-      game_over = data.game_over ?? false;
-      can_continue = history_count > 0 && !game_over;
-    } catch {
-      // 损坏数据，忽略
-    }
-  }
-
-  const slots = [1, 2, 3].map((slot) => {
-    const raw = localStorage.getItem(`${LS_SAVE_SLOT_PREFIX}${slot}`);
-    return {
-      slot,
-      exists: raw !== null,
-      updated_at: null,
-    };
-  });
-
-  return { can_continue, slots, game_over, history_count };
+/**
+ * GamePage 的薄包装，从 URL search params 读取初始参数。
+ * 例如 /local?load=1 表示挂载后自动打开读档弹窗。
+ */
+function GamePageWrapper() {
+  const [searchParams] = useSearchParams();
+  const openLoadModalOnMount = searchParams.get("load") === "1";
+  return <GamePage openLoadModalOnMount={openLoadModalOnMount} />;
 }
 
 /**
- * 内部组件 —— EngineProvider 加载完成后再渲染。
- * 引擎未就绪时显示 EngineLoadingScreen（含进度条/错误/重试按钮）。
+ * 单机对局路由 —— 只有进入本地对局时才加载 Pyodide 引擎。
  */
-function AppInner() {
-  const { isReady, isLoading, errorMessage } = useEngine();
-  const [appMode, setAppMode] = useState<"menu" | "game">("menu");
-  const [menuMeta, setMenuMeta] = useState<MenuMeta>(buildLocalMenuMeta());
-  const [menuLoading, setMenuLoading] = useState<boolean>(true);
-  const [openLoadOnEnter, setOpenLoadOnEnter] = useState<boolean>(false);
+function LocalGameRoute() {
+  return (
+    <EngineProvider>
+      <LocalGameContent />
+    </EngineProvider>
+  );
+}
 
-  function refreshMenuMeta() {
-    setMenuLoading(true);
-    setMenuMeta(buildLocalMenuMeta());
-    setMenuLoading(false);
-  }
+function LocalGameContent() {
+  const { isLoading, errorMessage } = useEngine();
 
-  useEffect(() => {
-    refreshMenuMeta();
-  }, []);
-
-  useEffect(() => {
-    if (isReady) {
-      setMenuLoading(false);
-      refreshMenuMeta();
-    }
-  }, [isReady]);
-
-  // 引擎加载中或出错 → 显示加载界面（含进度条 / 错误信息 / 重试按钮）
   if (isLoading || errorMessage) {
     return <EngineLoadingScreen />;
   }
 
-  if (appMode === "menu") {
-    return (
-      <MenuPage
-        menuMeta={menuMeta}
-        menuLoading={menuLoading}
-        onStartGame={() => {
-          localStorage.removeItem(LS_CURRENT_GAME);
-          setOpenLoadOnEnter(false);
-          setAppMode("game");
-        }}
-        onContinueGame={() => {
-          setOpenLoadOnEnter(false);
-          setAppMode("game");
-        }}
-        onLoadGame={() => {
-          setOpenLoadOnEnter(true);
-          setAppMode("game");
-        }}
-      />
-    );
-  }
-
-  return (
-    <GamePage
-      onBackToMenu={async () => {
-        refreshMenuMeta();
-        setAppMode("menu");
-      }}
-      openLoadModalOnMount={openLoadOnEnter}
-    />
-  );
+  return <GamePageWrapper />;
 }
 
 /**
  * 应用根组件。
- * EngineProvider 在最外层，确保引擎初始化只执行一次。
  */
 export default function App() {
   return (
-    <EngineProvider>
-      <AppInner />
-    </EngineProvider>
+    <Routes>
+      <Route path="/" element={<MenuPage />} />
+      <Route path="/local" element={<LocalGameRoute />} />
+      <Route path="/online" element={<ComingSoonPage mode="联机模式" />} />
+      <Route path="/ai" element={<ComingSoonPage mode="AI 对战" />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

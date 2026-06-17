@@ -58,12 +58,12 @@ export default function GameSidebar({
     <div className={`right-column ${compactSidebar ? "right-column-compact" : ""}`}>
       <div className="panel">
         <div className="section">
-          <div><strong>后端状态：</strong>{backendOk ? "已连接" : "未连接"}</div>
+          <div><strong>引擎状态：</strong>{backendOk ? "已就绪" : "未就绪"}</div>
           <div>
             <strong>当前提示：</strong>
             <span className={statusIsError ? "error" : "ok"}>{statusMessage}</span>
           </div>
-          <div><strong>页面初始化：</strong>{initLoading ? "进行中" : "完成"}</div>
+          <div><strong>引擎初始化：</strong>{initLoading ? "进行中" : "完成"}</div>
         </div>
 
         <div className="section button-grid">

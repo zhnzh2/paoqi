@@ -59,7 +59,7 @@ export default function useGameLifecycle({
       if (saved) {
         try {
           const data = JSON.parse(saved);
-          if (data.history_count > 0) {
+          if ((data.history?.length ?? 0) > 0) {
             const p = engine.importState(data);
             onPayloadChange(p);
             onStatusMessage("已恢复上次对局。");

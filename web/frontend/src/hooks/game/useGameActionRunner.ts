@@ -28,7 +28,7 @@ export default function useGameActionRunner({
   ) {
     setBusyScope(scope);
     try {
-      const res = action();
+      const res = await action();
       if (res.ok) {
         onStatusMessage(res.message);
         onStatusIsError(false);

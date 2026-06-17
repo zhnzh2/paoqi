@@ -727,17 +727,40 @@ h2 {
   background: linear-gradient(180deg, #934242 0%, #823939 100%);
 }
 
+/* ===================== 主菜单页面 ===================== */
+
 .menu-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background:
     radial-gradient(circle at top, rgba(111, 168, 230, 0.12), transparent 36%),
     linear-gradient(180deg, #1c1e23 0%, #17191d 100%);
-  padding: 24px;
+  padding: 32px 24px;
+  gap: 40px;
 }
 
+.menu-header {
+  text-align: center;
+}
+
+.menu-title {
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #f7f9fd;
+  margin: 0;
+}
+
+.menu-subtitle {
+  margin-top: 8px;
+  color: #8896b4;
+  font-size: 18px;
+}
+
+/* 旧版居中卡片 — 用于 ComingSoonPage 占位 */
 .menu-card {
   width: min(540px, 100%);
   padding: 38px 34px;
@@ -748,53 +771,156 @@ h2 {
   text-align: center;
 }
 
-.menu-title {
-  font-size: 56px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  color: #f7f9fd;
-}
-
-.menu-subtitle {
-  margin-top: 10px;
-  color: #bac5db;
-  font-size: 18px;
-}
-
-.menu-actions {
-  margin-top: 28px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
+/* 旧版菜单按钮 — 保留给 ComingSoonPage 使用 */
 .menu-button {
-  width: 220px;
-  min-height: 54px;
-  padding: 0 22px;
-  font-size: 18px;
+  min-height: 48px;
+  padding: 0 24px;
+  font-size: 16px;
   font-weight: 700;
+  border: 1px solid transparent;
   border-radius: 12px;
-}
-
-.menu-button-primary {
-  background: linear-gradient(180deg, #446aa5 0%, #38598e 100%);
-  border-color: #5d87ca;
-}
-
-.menu-button-primary:hover {
-  background: linear-gradient(180deg, #5077b4 0%, #42659f 100%);
-}
-
-.menu-button-secondary {
-  background: linear-gradient(180deg, #384252 0%, #2f3846 100%);
-  border-color: #56657d;
+  cursor: pointer;
   color: #eef3ff;
 }
 
+.menu-button-primary,
+.menu-button-secondary {
+  background: linear-gradient(180deg, #384252 0%, #2f3846 100%);
+  border-color: #56657d;
+}
+
+.menu-button-primary:hover,
 .menu-button-secondary:hover {
   background: linear-gradient(180deg, #425066 0%, #374457 100%);
+}
+
+/* ===================== 模式选择卡片 ===================== */
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  width: min(760px, 100%);
+}
+
+.mode-grid-bottom {
+  display: flex;
+  justify-content: center;
+  width: min(760px, 100%);
+}
+
+.mode-grid-bottom .mode-card {
+  max-width: calc(50% - 12px);  /* 与上方单个卡片等宽 */
+}
+
+.mode-card {
+  width: 100%;
+  padding: 30px 28px 26px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #2c3139 0%, #232830 100%);
+  border: 1px solid #434c5d;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+}
+
+.mode-card-active {
+  border-color: #4f6d9a;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(68, 106, 165, 0.25);
+}
+
+.mode-card-disabled {
+  opacity: 0.72;
+  filter: grayscale(0.3);
+}
+
+.mode-status {
+  margin-bottom: 8px;
+}
+
+.mode-badge {
+  display: inline-block;
+  padding: 3px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.mode-badge-live {
+  background: rgba(76, 175, 120, 0.18);
+  color: #6fcf8a;
+  border: 1px solid rgba(111, 207, 138, 0.35);
+}
+
+.mode-badge-dev {
+  background: rgba(229, 167, 80, 0.16);
+  color: #e5a750;
+  border: 1px solid rgba(229, 167, 80, 0.35);
+}
+
+.mode-name {
+  font-size: 24px;
+  font-weight: 800;
+  color: #eef3ff;
+  margin: 10px 0 8px;
+}
+
+.mode-desc {
+  font-size: 15px;
+  color: #95a3bb;
+  line-height: 1.7;
+  margin: 0 0 20px;
+  flex: 1;
+}
+
+.mode-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.mode-button {
+  width: 180px;
+  min-height: 48px;
+  padding: 0 20px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s;
+}
+
+.mode-button-primary {
+  background: linear-gradient(180deg, #446aa5 0%, #38598e 100%);
+  border-color: #5d87ca;
+  color: #fff;
+}
+
+.mode-button-primary:hover {
+  background: linear-gradient(180deg, #5077b4 0%, #42659f 100%);
+}
+
+.mode-button-ghost {
+  background: transparent;
+  border-color: #434c5d;
+  color: #8896b4;
+  font-size: 14px;
+  min-height: 36px;
+}
+
+.mode-button-ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #bac5db;
+}
+
+.mode-button-disabled {
+  background: linear-gradient(180deg, #303540 0%, #282d35 100%);
+  border-color: #3b4352;
+  color: #5a6478;
+  cursor: not-allowed;
 }
 
 .danger-actions-panel {

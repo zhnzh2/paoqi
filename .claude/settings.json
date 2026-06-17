@@ -13,7 +13,8 @@
       "Bash(curl -s -o /dev/null -w \"JS: HTTP %{http_code} | %{size_download} bytes | %{time_total}s\\\\n\" https://paoqi.org/assets/index-BSOJmaCh.js)",
       "Bash(curl -s -o /dev/null -w \"CSS: HTTP %{http_code} | %{size_download} bytes | %{time_total}s\\\\n\" https://paoqi.org/assets/index-BPCKlRnK.css)",
       "Bash(curl -s -o /dev/null -w \"API后端: HTTP %{http_code}\\\\n\" https://api.paoqi.org/api/health)",
-      "Bash(python -m pytest test/test_state_integrity.py -v)"
+      "Bash(python -m pytest test/test_state_integrity.py -v)",
+      "Bash(npm install *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\81616\\.claude\\projects\\c--Users-81616-OneDrive----paoqi\\memory"

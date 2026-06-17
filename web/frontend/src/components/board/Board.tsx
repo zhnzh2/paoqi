@@ -31,8 +31,8 @@ function makeCellKey(x: number, y: number): string {
 }
 
 function piecesEqual(a: PieceData, b: PieceData): boolean {
-  if (a === null || b === null) {
-    return a === b;
+  if (a == null || b == null) {
+    return a == b;
   }
 
   return a.color === b.color && a.level === b.level;

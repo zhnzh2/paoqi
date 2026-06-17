@@ -86,7 +86,10 @@ function buildModulesMap(coreDir) {
   lines.push("export default CORE_MODULES;");
   lines.push("");
 
-  return lines.join("\n");
+  return {
+    content: lines.join("\n"),
+    moduleCount: allFiles.length,
+  };
 }
 
 // ===================== 主流程 =====================
@@ -95,18 +98,9 @@ const coreDir = findCoreDir();
 
 if (coreDir) {
   // 找到了 core/ —— 重新生成
-  const output = buildModulesMap(coreDir);
+  const { content, moduleCount } = buildModulesMap(coreDir);
   fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
-  fs.writeFileSync(OUTPUT_FILE, output, "utf-8");
-
-  const moduleCount = Object.keys(
-    Object.fromEntries(
-      output
-        .split("\n")
-        .filter((l) => l.trim().startsWith('"'))
-        .map((l) => [l, true])
-    )
-  ).length;
+  fs.writeFileSync(OUTPUT_FILE, content, "utf-8");
 
   console.log(`✅ 已生成 ${OUTPUT_FILE}`);
   console.log(`   包含 ${moduleCount} 个 Python 模块`);

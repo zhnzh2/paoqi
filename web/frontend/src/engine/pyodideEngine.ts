@@ -17,7 +17,7 @@ const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
 const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
 
 /** 引擎版本号——修改此值会触发清理所有旧缓存和游戏数据 */
-const ENGINE_VERSION = "1.0.2";
+const ENGINE_VERSION = "1.0.3";
 const LS_VERSION_KEY = "paoqi_engine_version";
 const PYODIDE_IDB_NAME = "/pyodide";
 
@@ -64,6 +64,10 @@ import json as _json
 
 _game = None
 
+def _py_to_json(obj):
+    """将任意 Python 对象转为 JSON 字符串，供 JS 侧 JSON.parse 得到纯 JS 对象。"""
+    return _json.dumps(obj, default=str)
+
 def _ensure():
     global _game
     if _game is None:
@@ -88,6 +92,15 @@ def _payload(g=None):
         "phase": g.phase,
     }
 
+def _ensure_dict(obj):
+    """确保对象是 Python dict（Pyodide 可能将 JS 对象传为 mapping proxy 而非 dict）。"""
+    if isinstance(obj, dict):
+        return obj
+    try:
+        return dict(obj.items())
+    except Exception:
+        return obj
+
 def engine_new_game():
     global _game
     _game = Game()
@@ -99,6 +112,7 @@ def engine_get_payload():
 
 def engine_apply_action(action):
     _ensure()
+    action = _ensure_dict(action)
     result = _game.try_apply_action_with_snapshot(action)
     if not result["ok"]:
         return {"ok": False, "message": result["message"]}
@@ -112,6 +126,7 @@ def engine_apply_action(action):
 
 def engine_preview_action(action):
     _ensure()
+    action = _ensure_dict(action)
     try:
         pg = _game.clone()
         result = pg.try_apply_action_with_snapshot(action)
@@ -182,6 +197,7 @@ def engine_export_state():
 def engine_import_state(data):
     global _game
     from core.state_io import from_exported_state
+    data = _ensure_dict(data)
     _game = from_exported_state(data)
     return _payload()
 
@@ -332,19 +348,47 @@ if "/home/pyodide" not in sys.path:
 
   private writeCoreModules(): void {
     const FS = this.pyodide.FS;
-    try { FS.mkdir("/home/pyodide/core"); } catch (_) { /* 已存在 */ }
-    try { FS.mkdir("/home/pyodide/core/game_impl"); } catch (_) { /* 已存在 */ }
     for (const [relativePath, content] of Object.entries(CORE_MODULES)) {
       const targetPath = `/home/pyodide/core/${relativePath}`;
+      this.ensureFsDir(targetPath.slice(0, targetPath.lastIndexOf("/")));
       FS.writeFile(targetPath, content, { encoding: "utf8" });
     }
   }
 
   get isReady(): boolean { return this.ready; }
 
+  private ensureFsDir(dirPath: string): void {
+    const FS = this.pyodide.FS;
+    const parts = dirPath.split("/").filter(Boolean);
+    let current = "";
+
+    for (const part of parts) {
+      current += `/${part}`;
+      try {
+        FS.mkdir(current);
+      } catch {
+        // 目录已存在时忽略。
+      }
+    }
+  }
+
   private run<T = any>(code: string): T {
     if (!this.ready) throw new Error("引擎尚未就绪。");
-    return this.pyodide.runPython(code) as T;
+    const result = this.pyodide.runPython(code);
+    // 通过 Python json.dumps 将 PyProxy 转为纯 JS 对象，
+    // 消除 PyProxy 带来的 Object.keys() 为空、属性访问异常等问题。
+    if (result != null && typeof result === "object") {
+      try {
+        const jsonFn = this.pyodide.globals.get("_py_to_json");
+        if (jsonFn) {
+          const jsonStr = jsonFn(result) as string;
+          return JSON.parse(jsonStr) as T;
+        }
+      } catch {
+        // json 序列化失败时回退到原始 PyProxy
+      }
+    }
+    return result as T;
   }
 
   // ===================== 公开 API =====================
@@ -358,13 +402,13 @@ if "/home/pyodide" not in sys.path:
   }
 
   applyAction(action: GameAction): EngineApplyResult {
-    (this.pyodide.globals as any).set("_js_action", action);
-    return this.run<EngineApplyResult>("engine_apply_action(_js_action)");
+    (this.pyodide.globals as any).set("_js_action_json", JSON.stringify(action));
+    return this.run<EngineApplyResult>("engine_apply_action(_json.loads(_js_action_json))");
   }
 
   previewAction(action: GameAction): EnginePreviewResult {
-    (this.pyodide.globals as any).set("_js_action", action);
-    return this.run<EnginePreviewResult>("engine_preview_action(_js_action)");
+    (this.pyodide.globals as any).set("_js_action_json", JSON.stringify(action));
+    return this.run<EnginePreviewResult>("engine_preview_action(_json.loads(_js_action_json))");
   }
 
   confirmPending(): EngineApplyResult {
@@ -388,13 +432,12 @@ if "/home/pyodide" not in sys.path:
   }
 
   exportState(): Record<string, any> {
-    this.run("from core.state_io import export_full_state");
     return this.run("engine_export_state()");
   }
 
   importState(data: Record<string, any>): GamePayload {
-    (this.pyodide.globals as any).set("_js_state", data);
-    return this.run<GamePayload>("engine_import_state(_js_state)");
+    (this.pyodide.globals as any).set("_js_state_json", JSON.stringify(data));
+    return this.run<GamePayload>("engine_import_state(_json.loads(_js_state_json))");
   }
 
   getHistoryCount(): number {
