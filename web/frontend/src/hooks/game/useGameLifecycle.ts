@@ -53,28 +53,37 @@ export default function useGameLifecycle({
       return;
     }
 
-    // 尝试恢复之前未完成的本地对局
-    const saved = localStorage.getItem("paoqi_current_game");
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        if (data.history_count > 0) {
-          const p = engine.importState(data);
-          onPayloadChange(p);
-          onStatusMessage("已恢复上次对局。");
-          onStatusIsError(false);
-          return;
+    try {
+      // 尝试恢复之前未完成的本地对局
+      const saved = localStorage.getItem("paoqi_current_game");
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.history_count > 0) {
+            const p = engine.importState(data);
+            onPayloadChange(p);
+            onStatusMessage("已恢复上次对局。");
+            onStatusIsError(false);
+            return;
+          }
+        } catch (parseErr) {
+          // JSON 损坏或引擎 importState 失败——清除损坏数据，重新开始
+          console.warn("恢复对局失败，将创建新对局：", parseErr);
+          localStorage.removeItem("paoqi_current_game");
         }
-      } catch {
-        // 恢复失败，创建新对局
       }
-    }
 
-    // 创建全新对局
-    const p = engine.newGame();
-    onPayloadChange(p);
-    onStatusMessage("引擎就绪，对局已开始。");
-    onStatusIsError(false);
+      // 创建全新对局
+      const p = engine.newGame();
+      onPayloadChange(p);
+      onStatusMessage("引擎就绪，对局已开始。");
+      onStatusIsError(false);
+    } catch (engineErr) {
+      // 引擎调用异常——显示错误但不触发 ErrorBoundary
+      console.error("引擎初始化对局失败：", engineErr);
+      onStatusMessage(`引擎错误：${String(engineErr)}`);
+      onStatusIsError(true);
+    }
   }, [isReady, engine, payload, onPayloadChange, onStatusMessage, onStatusIsError]);
 
   // 棋谱翻页越界修正

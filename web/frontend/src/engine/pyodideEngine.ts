@@ -3,9 +3,9 @@
  *
  * 特性：
  * - 从 jsDelivr CDN 加载 Pyodide 运行时
- * - 阶段性进度报告（百分比 + 文字描述）
+ * - 阶段性进度报告（百分比 + 文字描述），每阶段最少停留 200ms
  * - IndexedDB 缓存完整性检查，损坏时自动清理重试
- * - 版本号变更时自动清理旧缓存
+ * - 版本号变更时自动清理旧缓存 + 旧游戏数据
  */
 
 import CORE_MODULES from "./coreModules";
@@ -16,16 +16,27 @@ import type { GameAction, GamePayload } from "../types/game";
 const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
 const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
 
-/** 引擎版本号——修改此值会触发清理所有旧缓存 */
-const ENGINE_VERSION = "1.0.0";
+/** 引擎版本号——修改此值会触发清理所有旧缓存和游戏数据 */
+const ENGINE_VERSION = "1.0.1";
 const LS_VERSION_KEY = "paoqi_engine_version";
 const PYODIDE_IDB_NAME = "/pyodide";
+
+/** 新版部署时需要清理的 localStorage 游戏键 */
+const GAME_LS_KEYS = [
+  "paoqi_current_game",
+  "paoqi_save_slot_1",
+  "paoqi_save_slot_2",
+  "paoqi_save_slot_3",
+];
+
+/** 进度条每阶段最少停留时间（毫秒），确保用户能看到变化 */
+const MIN_STAGE_DELAY_MS = 200;
 
 // ---------- 类型 ----------
 
 export interface EngineProgress {
-  stage: string;       // 当前阶段描述
-  percent: number;     // 0-100
+  stage: string;
+  percent: number;
 }
 
 export type EngineProgressCallback = (progress: EngineProgress) => void;
@@ -181,36 +192,38 @@ def engine_get_history_count():
 
 // ---------- 工具函数 ----------
 
-/**
- * 删除 Pyodide 的 IndexedDB 缓存（用于清理损坏的缓存）。
- */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function clearPyodideCache(): Promise<void> {
   return new Promise((resolve) => {
     try {
       const req = indexedDB.deleteDatabase(PYODIDE_IDB_NAME);
       req.onsuccess = () => resolve();
-      req.onerror = () => resolve();   // 数据库不存在也算成功
+      req.onerror = () => resolve();
       req.onblocked = () => {
-        // 被其他标签页占用，强制关闭后重试
         console.warn("Pyodide 缓存被占用，跳过清理");
         resolve();
       };
     } catch {
-      // indexedDB 不可用（极端隐私模式），忽略
       resolve();
     }
   });
 }
 
-/**
- * 检查是否需要清理旧版本缓存。
- * 如果上次记录的引擎版本与当前不同，清理缓存并更新版本号。
- */
+function clearGameLocalStorage(): void {
+  for (const key of GAME_LS_KEYS) {
+    try { localStorage.removeItem(key); } catch { /* 忽略 */ }
+  }
+}
+
 async function invalidateStaleCache(): Promise<void> {
   const storedVersion = localStorage.getItem(LS_VERSION_KEY);
   if (storedVersion !== ENGINE_VERSION) {
-    console.log(`引擎版本变更 (${storedVersion} → ${ENGINE_VERSION})，清理旧缓存...`);
+    console.log(`引擎版本变更 (${storedVersion} → ${ENGINE_VERSION})，清理旧缓存和游戏数据...`);
     await clearPyodideCache();
+    clearGameLocalStorage();
     localStorage.setItem(LS_VERSION_KEY, ENGINE_VERSION);
   }
 }
@@ -229,10 +242,6 @@ export class PaoqiEngine {
 
   private constructor() {}
 
-  /**
-   * 创建并初始化引擎。
-   * @param onProgress 进度回调，接收 { stage, percent }
-   */
   static async create(onProgress?: EngineProgressCallback): Promise<PaoqiEngine> {
     const engine = new PaoqiEngine();
     await engine.init(onProgress);
@@ -243,32 +252,33 @@ export class PaoqiEngine {
     onProgress?.({ stage, percent });
   }
 
+  /**
+   * 初始化引擎。
+   * 每阶段之间最少停留 MIN_STAGE_DELAY_MS，确保进度条动画可见。
+   */
   private async init(onProgress?: EngineProgressCallback): Promise<void> {
+    const step = async (stage: string, percent: number, fn: () => void | Promise<void>) => {
+      this.report(onProgress, stage, percent);
+      await fn();
+      await delay(MIN_STAGE_DELAY_MS);
+    };
+
     // 1. 检查并清理版本不匹配的旧缓存
-    this.report(onProgress, "正在检查缓存...", 0);
-    await invalidateStaleCache();
+    await step("正在检查缓存...", 0, () => invalidateStaleCache());
 
     // 2. 加载 Pyodide CDN 脚本
-    this.report(onProgress, "正在连接 CDN...", 5);
-    await this.loadPyodideScript();
+    await step("正在连接 CDN...", 10, () => this.loadPyodideScript());
 
     // 3. 下载并初始化 Pyodide 核心运行时
-    this.report(onProgress, "正在下载运行时...", 15);
-
+    this.report(onProgress, "正在下载运行时...", 20);
     try {
-      this.pyodide = await window.loadPyodide({
-        indexURL: PYODIDE_INDEX_URL,
-      });
+      this.pyodide = await window.loadPyodide({ indexURL: PYODIDE_INDEX_URL });
     } catch (firstError) {
-      // 首次加载失败——可能是缓存损坏，清理后重试一次
       console.warn("Pyodide 首次加载失败，清理缓存后重试...", firstError);
-      this.report(onProgress, "首次加载失败，正在清理损坏缓存...", 10);
+      this.report(onProgress, "首次加载失败，正在清理损坏缓存...", 15);
       await clearPyodideCache();
-
       try {
-        this.pyodide = await window.loadPyodide({
-          indexURL: PYODIDE_INDEX_URL,
-        });
+        this.pyodide = await window.loadPyodide({ indexURL: PYODIDE_INDEX_URL });
       } catch (secondError) {
         throw new Error(
           `Pyodide 运行时加载失败（已重试）。请检查网络连接。\n` +
@@ -276,23 +286,26 @@ export class PaoqiEngine {
         );
       }
     }
+    await delay(MIN_STAGE_DELAY_MS);
 
     // 4. 初始化 Python 环境
-    this.report(onProgress, "正在初始化 Python 环境...", 50);
-
-    this.pyodide.runPython(`
+    await step("正在初始化 Python 环境...", 40, () => {
+      this.pyodide.runPython(`
 import sys
 if "/home/pyodide" not in sys.path:
     sys.path.insert(0, "/home/pyodide")
 `);
+    });
 
     // 5. 写入 core/ 模块到虚拟文件系统
-    this.report(onProgress, "正在加载规则引擎模块...", 65);
-    this.writeCoreModules();
+    await step("正在加载规则引擎模块...", 60, () => {
+      this.writeCoreModules();
+    });
 
     // 6. 执行 Python 辅助脚本
-    this.report(onProgress, "正在编译游戏引擎...", 85);
-    this.pyodide.runPython(PYTHON_HELPER);
+    await step("正在编译游戏引擎...", 80, () => {
+      this.pyodide.runPython(PYTHON_HELPER);
+    });
 
     // 7. 完成
     this.report(onProgress, "引擎就绪", 100);
@@ -305,7 +318,6 @@ if "/home/pyodide" not in sys.path:
         resolve();
         return;
       }
-
       const script = document.createElement("script");
       script.src = PYODIDE_CDN;
       script.onload = () => resolve();
@@ -320,10 +332,8 @@ if "/home/pyodide" not in sys.path:
 
   private writeCoreModules(): void {
     const FS = this.pyodide.FS;
-
     try { FS.mkdir("/home/pyodide/core"); } catch (_) { /* 已存在 */ }
     try { FS.mkdir("/home/pyodide/core/game_impl"); } catch (_) { /* 已存在 */ }
-
     for (const [relativePath, content] of Object.entries(CORE_MODULES)) {
       const targetPath = `/home/pyodide/core/${relativePath}`;
       FS.writeFile(targetPath, content, { encoding: "utf8" });

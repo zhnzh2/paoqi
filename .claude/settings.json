@@ -7,6 +7,9 @@
       "Bash(npx vite *)",
       "Bash(rm -f src/engine/coreModules.ts)",
       "Bash(npm run *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\81616\\.claude\\projects\\c--Users-81616-OneDrive----paoqi\\memory"
     ]
   }
 }

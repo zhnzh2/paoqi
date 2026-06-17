@@ -145,17 +145,12 @@ export function EngineProvider({ children }: { children: React.ReactNode }) {
   const retry = () => {
     retryCountRef.current += 1;
 
-    // 清理可能损坏的 IndexedDB 缓存
-    try {
-      indexedDB.deleteDatabase("/pyodide");
-    } catch { /* 忽略 */ }
-
-    // 清理引擎版本标记，触发完整重新下载
+    // 清理所有可能损坏的缓存和旧数据
+    try { indexedDB.deleteDatabase("/pyodide"); } catch { /* 忽略 */ }
     localStorage.removeItem("paoqi_engine_version");
-
-    // 清理可能残留的 Pyodide 全局状态
-    if (typeof window !== "undefined" && (window as any).loadPyodide) {
-      // 不能重置 loadPyodide，但可以重新初始化
+    localStorage.removeItem("paoqi_current_game");
+    for (let i = 1; i <= 3; i++) {
+      localStorage.removeItem(`paoqi_save_slot_${i}`);
     }
 
     boot();
