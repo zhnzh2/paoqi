@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { EngineProvider, useEngine } from "./engine/EngineContext";
+import { EngineProvider, useEngine, EngineLoadingScreen } from "./engine/EngineContext";
 import GamePage from "./pages/GamePage";
 import MenuPage from "./components/menu/MenuPage";
 
@@ -18,7 +18,6 @@ const LS_CURRENT_GAME = "paoqi_current_game";
 const LS_SAVE_SLOT_PREFIX = "paoqi_save_slot_";
 
 function buildLocalMenuMeta(): MenuMeta {
-  // 检查当前是否有进行中的对局
   let can_continue = false;
   let game_over = false;
   let history_count = 0;
@@ -35,13 +34,12 @@ function buildLocalMenuMeta(): MenuMeta {
     }
   }
 
-  // 检查存档槽位
   const slots = [1, 2, 3].map((slot) => {
     const raw = localStorage.getItem(`${LS_SAVE_SLOT_PREFIX}${slot}`);
     return {
       slot,
       exists: raw !== null,
-      updated_at: null, // localStorage 不提供时间戳
+      updated_at: null,
     };
   });
 
@@ -49,18 +47,18 @@ function buildLocalMenuMeta(): MenuMeta {
 }
 
 /**
- * 内部组件 —— 在 EngineProvider 内部使用 useEngine()
+ * 内部组件 —— EngineProvider 加载完成后再渲染。
+ * 引擎未就绪时显示 EngineLoadingScreen（含进度条/错误/重试按钮）。
  */
 function AppInner() {
-  const { isReady, isLoading } = useEngine();
+  const { isReady, isLoading, errorMessage } = useEngine();
   const [appMode, setAppMode] = useState<"menu" | "game">("menu");
   const [menuMeta, setMenuMeta] = useState<MenuMeta>(buildLocalMenuMeta());
-  const [menuLoading, setMenuLoading] = useState<boolean>(isLoading);
+  const [menuLoading, setMenuLoading] = useState<boolean>(true);
   const [openLoadOnEnter, setOpenLoadOnEnter] = useState<boolean>(false);
 
   function refreshMenuMeta() {
     setMenuLoading(true);
-    // localStorage 读取是同步的，但保持异步接口一致
     setMenuMeta(buildLocalMenuMeta());
     setMenuLoading(false);
   }
@@ -69,7 +67,6 @@ function AppInner() {
     refreshMenuMeta();
   }, []);
 
-  // 引擎加载完成后刷新菜单状态
   useEffect(() => {
     if (isReady) {
       setMenuLoading(false);
@@ -77,13 +74,17 @@ function AppInner() {
     }
   }, [isReady]);
 
+  // 引擎加载中或出错 → 显示加载界面（含进度条 / 错误信息 / 重试按钮）
+  if (isLoading || errorMessage) {
+    return <EngineLoadingScreen />;
+  }
+
   if (appMode === "menu") {
     return (
       <MenuPage
         menuMeta={menuMeta}
         menuLoading={menuLoading}
         onStartGame={() => {
-          // 清除上次对局存档
           localStorage.removeItem(LS_CURRENT_GAME);
           setOpenLoadOnEnter(false);
           setAppMode("game");

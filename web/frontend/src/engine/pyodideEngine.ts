@@ -1,17 +1,34 @@
 /**
  * Pyodide 引擎 —— 在浏览器中本地运行炮棋核心规则引擎。
  *
- * 工作方式：
- * 1. 从 jsDelivr CDN 加载 Pyodide
- * 2. 将打包好的 core/ 模块写入虚拟文件系统
- * 3. 注入 Python 辅助函数，暴露为 TypeScript 方法
- * 4. 所有游戏逻辑在浏览器本地毫秒级完成
+ * 特性：
+ * - 从 jsDelivr CDN 加载 Pyodide 运行时
+ * - 阶段性进度报告（百分比 + 文字描述）
+ * - IndexedDB 缓存完整性检查，损坏时自动清理重试
+ * - 版本号变更时自动清理旧缓存
  */
 
 import CORE_MODULES from "./coreModules";
 import type { GameAction, GamePayload } from "../types/game";
 
-// ---------- 类型定义 ----------
+// ---------- 常量 ----------
+
+const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
+const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
+
+/** 引擎版本号——修改此值会触发清理所有旧缓存 */
+const ENGINE_VERSION = "1.0.0";
+const LS_VERSION_KEY = "paoqi_engine_version";
+const PYODIDE_IDB_NAME = "/pyodide";
+
+// ---------- 类型 ----------
+
+export interface EngineProgress {
+  stage: string;       // 当前阶段描述
+  percent: number;     // 0-100
+}
+
+export type EngineProgressCallback = (progress: EngineProgress) => void;
 
 export interface EngineApplyResult {
   ok: boolean;
@@ -27,14 +44,8 @@ export interface EnginePreviewResult {
   result?: Record<string, any>;
 }
 
-export type EngineProgressCallback = (message: string) => void;
-
 // ---------- Python 辅助脚本 ----------
 
-/**
- * 注入 Pyodide 的 Python 辅助脚本。
- * 负责管理 Game 实例并提供 JS 可调用的函数。
- */
 const PYTHON_HELPER = `
 from core.game import Game
 from core.save_io import load_game_from_file as _load_game_from_file
@@ -76,9 +87,7 @@ def engine_get_payload():
     return _payload()
 
 def engine_apply_action(action):
-    """action 是 JS 传入的 dict。返回 {ok, message, result, payload}"""
     _ensure()
-    # Pyodide 自动将 JS object 转为 Python dict
     result = _game.try_apply_action_with_snapshot(action)
     if not result["ok"]:
         return {"ok": False, "message": result["message"]}
@@ -91,7 +100,6 @@ def engine_apply_action(action):
     }
 
 def engine_preview_action(action):
-    """返回 {ok, preview_snapshot, result}"""
     _ensure()
     try:
         pg = _game.clone()
@@ -156,13 +164,11 @@ def engine_resign():
         return {"ok": False, "message": "投降失败：" + str(e)}
 
 def engine_export_state():
-    """导出完整状态为 JSON 兼容的 dict，用于 save"""
     _ensure()
     from core.state_io import export_full_state
     return export_full_state(_game)
 
 def engine_import_state(data):
-    """从 export_full_state 的 dict 恢复游戏"""
     global _game
     from core.state_io import from_exported_state
     _game = from_exported_state(data)
@@ -173,10 +179,43 @@ def engine_get_history_count():
     return len(_game.history)
 `.trim();
 
+// ---------- 工具函数 ----------
 
-// ---------- 引擎单例 ----------
+/**
+ * 删除 Pyodide 的 IndexedDB 缓存（用于清理损坏的缓存）。
+ */
+function clearPyodideCache(): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.deleteDatabase(PYODIDE_IDB_NAME);
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();   // 数据库不存在也算成功
+      req.onblocked = () => {
+        // 被其他标签页占用，强制关闭后重试
+        console.warn("Pyodide 缓存被占用，跳过清理");
+        resolve();
+      };
+    } catch {
+      // indexedDB 不可用（极端隐私模式），忽略
+      resolve();
+    }
+  });
+}
 
-const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
+/**
+ * 检查是否需要清理旧版本缓存。
+ * 如果上次记录的引擎版本与当前不同，清理缓存并更新版本号。
+ */
+async function invalidateStaleCache(): Promise<void> {
+  const storedVersion = localStorage.getItem(LS_VERSION_KEY);
+  if (storedVersion !== ENGINE_VERSION) {
+    console.log(`引擎版本变更 (${storedVersion} → ${ENGINE_VERSION})，清理旧缓存...`);
+    await clearPyodideCache();
+    localStorage.setItem(LS_VERSION_KEY, ENGINE_VERSION);
+  }
+}
+
+// ---------- 引擎类 ----------
 
 declare global {
   interface Window {
@@ -191,8 +230,8 @@ export class PaoqiEngine {
   private constructor() {}
 
   /**
-   * 初始化引擎：加载 Pyodide → 写入 core 模块 → 执行 Python 辅助脚本。
-   * 这是一个重型操作（首次需下载 ~10-15MB），应在应用启动时调用一次。
+   * 创建并初始化引擎。
+   * @param onProgress 进度回调，接收 { stage, percent }
    */
   static async create(onProgress?: EngineProgressCallback): Promise<PaoqiEngine> {
     const engine = new PaoqiEngine();
@@ -200,44 +239,68 @@ export class PaoqiEngine {
     return engine;
   }
 
-  private async init(onProgress?: EngineProgressCallback): Promise<void> {
-    const log = (msg: string) => onProgress?.(msg);
+  private report(onProgress: EngineProgressCallback | undefined, stage: string, percent: number): void {
+    onProgress?.({ stage, percent });
+  }
 
-    // 1. 加载 Pyodide 脚本
-    log("正在加载 Pyodide 运行时...");
+  private async init(onProgress?: EngineProgressCallback): Promise<void> {
+    // 1. 检查并清理版本不匹配的旧缓存
+    this.report(onProgress, "正在检查缓存...", 0);
+    await invalidateStaleCache();
+
+    // 2. 加载 Pyodide CDN 脚本
+    this.report(onProgress, "正在连接 CDN...", 5);
     await this.loadPyodideScript();
 
-    // 2. 初始化 Pyodide
-    log("正在初始化 Python 环境...");
-    this.pyodide = await window.loadPyodide({
-      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/",
-    });
+    // 3. 下载并初始化 Pyodide 核心运行时
+    this.report(onProgress, "正在下载运行时...", 15);
 
-    // 3. 将 core/ 模块写入虚拟文件系统
-    log("正在加载核心规则引擎模块...");
-    this.writeCoreModules();
+    try {
+      this.pyodide = await window.loadPyodide({
+        indexURL: PYODIDE_INDEX_URL,
+      });
+    } catch (firstError) {
+      // 首次加载失败——可能是缓存损坏，清理后重试一次
+      console.warn("Pyodide 首次加载失败，清理缓存后重试...", firstError);
+      this.report(onProgress, "首次加载失败，正在清理损坏缓存...", 10);
+      await clearPyodideCache();
 
-    // 4. 在 Python 环境中添加路径
+      try {
+        this.pyodide = await window.loadPyodide({
+          indexURL: PYODIDE_INDEX_URL,
+        });
+      } catch (secondError) {
+        throw new Error(
+          `Pyodide 运行时加载失败（已重试）。请检查网络连接。\n` +
+          `错误详情：${String(secondError)}`
+        );
+      }
+    }
+
+    // 4. 初始化 Python 环境
+    this.report(onProgress, "正在初始化 Python 环境...", 50);
+
     this.pyodide.runPython(`
 import sys
 if "/home/pyodide" not in sys.path:
     sys.path.insert(0, "/home/pyodide")
 `);
 
-    // 5. 执行辅助脚本
-    log("正在初始化游戏引擎...");
+    // 5. 写入 core/ 模块到虚拟文件系统
+    this.report(onProgress, "正在加载规则引擎模块...", 65);
+    this.writeCoreModules();
+
+    // 6. 执行 Python 辅助脚本
+    this.report(onProgress, "正在编译游戏引擎...", 85);
     this.pyodide.runPython(PYTHON_HELPER);
 
+    // 7. 完成
+    this.report(onProgress, "引擎就绪", 100);
     this.ready = true;
-    log("引擎就绪。");
   }
 
-  /**
-   * 动态加载 Pyodide CDN 脚本。
-   */
   private loadPyodideScript(): Promise<void> {
     return new Promise((resolve, reject) => {
-      // 检查是否已加载
       if (window.loadPyodide) {
         resolve();
         return;
@@ -246,18 +309,18 @@ if "/home/pyodide" not in sys.path:
       const script = document.createElement("script");
       script.src = PYODIDE_CDN;
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Pyodide CDN 加载失败，请检查网络连接。"));
+      script.onerror = () => reject(new Error(
+        "Pyodide CDN 连接失败。\n" +
+        "可能原因：网络不通、CDN 被屏蔽、或浏览器插件拦截。\n" +
+        `CDN 地址：${PYODIDE_CDN}`
+      ));
       document.head.appendChild(script);
     });
   }
 
-  /**
-   * 将打包的 core/ 模块写入 Pyodide 虚拟文件系统。
-   */
   private writeCoreModules(): void {
     const FS = this.pyodide.FS;
 
-    // 确保目标目录存在
     try { FS.mkdir("/home/pyodide/core"); } catch (_) { /* 已存在 */ }
     try { FS.mkdir("/home/pyodide/core/game_impl"); } catch (_) { /* 已存在 */ }
 
@@ -267,89 +330,63 @@ if "/home/pyodide" not in sys.path:
     }
   }
 
-  /** 检查引擎是否已就绪 */
-  get isReady(): boolean {
-    return this.ready;
-  }
+  get isReady(): boolean { return this.ready; }
 
-  /**
-   * 在 Python 环境中执行代码并返回结果。
-   */
   private run<T = any>(code: string): T {
-    if (!this.ready) {
-      throw new Error("引擎尚未就绪。");
-    }
+    if (!this.ready) throw new Error("引擎尚未就绪。");
     return this.pyodide.runPython(code) as T;
   }
 
   // ===================== 公开 API =====================
 
-  /** 创建新对局，返回初始 GamePayload */
   newGame(): GamePayload {
     return this.run<GamePayload>("engine_new_game()");
   }
 
-  /** 获取当前对局的完整 GamePayload */
   getPayload(): GamePayload {
     return this.run<GamePayload>("engine_get_payload()");
   }
 
-  /** 执行动作，返回结果 + 更新后的 GamePayload */
   applyAction(action: GameAction): EngineApplyResult {
-    // 将 JS 对象作为 Python dict 参数传递
     (this.pyodide.globals as any).set("_js_action", action);
-    const result = this.run<EngineApplyResult>(
-      "engine_apply_action(_js_action)"
-    );
-    return result;
+    return this.run<EngineApplyResult>("engine_apply_action(_js_action)");
   }
 
-  /** 预览动作效果，不改变当前游戏状态 */
   previewAction(action: GameAction): EnginePreviewResult {
     (this.pyodide.globals as any).set("_js_action", action);
-    return this.run<EnginePreviewResult>(
-      "engine_preview_action(_js_action)"
-    );
+    return this.run<EnginePreviewResult>("engine_preview_action(_js_action)");
   }
 
-  /** 确认待处理的自动动作 */
   confirmPending(): EngineApplyResult {
     return this.run<EngineApplyResult>("engine_confirm_pending()");
   }
 
-  /** 撤销上一步 */
   undo(): { ok: boolean; message: string; payload?: GamePayload } {
     return this.run("engine_undo()");
   }
 
-  /** 重新开始对局 */
   restart(): GamePayload {
     return this.run<GamePayload>("engine_restart()");
   }
 
-  /** 协商终局 */
   endGameByAgreement(): { ok: boolean; message: string; payload?: GamePayload } {
     return this.run("engine_endgame()");
   }
 
-  /** 投降 */
   resign(): { ok: boolean; message: string; payload?: GamePayload } {
     return this.run("engine_resign()");
   }
 
-  /** 导出完整状态（用于保存到 localStorage） */
   exportState(): Record<string, any> {
     this.run("from core.state_io import export_full_state");
     return this.run("engine_export_state()");
   }
 
-  /** 从导出状态恢复 */
   importState(data: Record<string, any>): GamePayload {
     (this.pyodide.globals as any).set("_js_state", data);
     return this.run<GamePayload>("engine_import_state(_js_state)");
   }
 
-  /** 获取棋谱长度（用于判断是否可继续） */
   getHistoryCount(): number {
     return this.run<number>("engine_get_history_count()");
   }

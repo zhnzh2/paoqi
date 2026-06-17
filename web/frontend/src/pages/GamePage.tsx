@@ -26,12 +26,10 @@ type GamePageProps = {
 };
 
 export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }: GamePageProps) {
-  const { engine, isReady, isLoading, progressMessage, errorMessage } = useEngine();
+  const { engine, isReady } = useEngine();
 
   const [payload, setPayload] = useState<GamePayload | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string>(
-    isLoading ? progressMessage : "引擎就绪，对局已开始。"
-  );
+  const [statusMessage, setStatusMessage] = useState<string>("引擎就绪，对局已开始。");
   const [statusIsError, setStatusIsError] = useState<boolean>(false);
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null);
   const [recordPage, setRecordPage] = useState<number>(1);
@@ -320,85 +318,8 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
     }
   }, [confirmDialog, engine, closeConfirmDialog, handleSave, handleLoad, runEngineOp, handleConfirmPending]);
 
-  // ===================== 加载状态 =====================
-
-  if (isLoading) {
-    return (
-      <div className="page">
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100vh",
-          color: "#ccc",
-          fontFamily: "sans-serif",
-        }}>
-          <div style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>♟️ 炮棋引擎加载中</div>
-          <div style={{ fontSize: "0.9rem", marginBottom: "1.5rem", color: "#888" }}>
-            {progressMessage}
-          </div>
-          <div style={{
-            width: "300px",
-            height: "4px",
-            background: "#333",
-            borderRadius: "2px",
-            overflow: "hidden",
-          }}>
-            <div style={{
-              height: "100%",
-              width: "60%",
-              background: "#c74444",
-              borderRadius: "2px",
-              animation: "paoqi-loading-bar 1.5s ease-in-out infinite",
-            }} />
-          </div>
-          <style>{`
-            @keyframes paoqi-loading-bar {
-              0% { transform: translateX(-100%); }
-              100% { transform: translateX(400%); }
-            }
-          `}</style>
-        </div>
-      </div>
-    );
-  }
-
-  if (errorMessage) {
-    return (
-      <div className="page">
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100vh",
-          color: "#f88",
-          fontFamily: "sans-serif",
-        }}>
-          <div style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>引擎加载失败</div>
-          <div style={{ fontSize: "0.9rem", marginBottom: "2rem", maxWidth: "500px", textAlign: "center" }}>
-            {errorMessage}
-          </div>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              padding: "0.6rem 1.5rem",
-              background: "#c74444",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "0.9rem",
-            }}
-          >
-            重试
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // 引擎由 App 层统一加载，到这里时已经就绪。
+  // payload 在 useGameLifecycle 中初始化，极短间隙显示占位。
   if (!payload) {
     return (
       <div className="page">
@@ -409,6 +330,7 @@ export default function GamePage({ onBackToMenu, openLoadModalOnMount = false }:
           height: "100vh",
           color: "#ccc",
           fontFamily: "sans-serif",
+          background: "#1a1a1a",
         }}>
           正在准备对局...
         </div>

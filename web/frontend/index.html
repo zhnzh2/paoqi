@@ -6,7 +6,21 @@
     <title>炮棋 Web</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- JS 加载前的兜底提示，React 挂载后会被替换 -->
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        color: #ccc;
+        font-family: sans-serif;
+        font-size: 1.1rem;
+        background: #1a1a1a;
+      ">
+        ♟️ 炮棋加载中...
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
