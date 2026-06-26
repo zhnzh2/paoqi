@@ -5,6 +5,9 @@ type RoomInfoPanelProps = {
   redConnected: boolean;
   blueConnected: boolean;
   myColor: "R" | "B" | null;
+  isMyTurn?: boolean;
+  phase?: string;
+  isConnected?: boolean;
 };
 
 export default function RoomInfoPanel({
@@ -14,6 +17,9 @@ export default function RoomInfoPanel({
   redConnected,
   blueConnected,
   myColor,
+  isMyTurn,
+  phase,
+  isConnected,
 }: RoomInfoPanelProps) {
   const handleCopyCode = () => {
     navigator.clipboard.writeText(roomCode);
@@ -33,6 +39,26 @@ export default function RoomInfoPanel({
           {roomCode}
         </span>
       </div>
+
+      {phase === "playing" && (
+        <div className="room-info-item">
+          <span className="room-info-label">当前回合</span>
+          <span
+            className={`room-info-value ${isMyTurn ? "room-info-turn-mine" : "room-info-turn-opponent"}`}
+          >
+            {isMyTurn ? "你的回合" : "对手回合"}
+          </span>
+        </div>
+      )}
+
+      {isConnected === false && (
+        <div className="room-info-item">
+          <span className="room-info-label">连接状态</span>
+          <span className="room-info-status room-info-status-offline">
+            已断开
+          </span>
+        </div>
+      )}
 
       <div className="room-info-item">
         <span className="room-info-label">🔴 红方</span>

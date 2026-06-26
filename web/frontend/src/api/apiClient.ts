@@ -40,7 +40,10 @@ export async function request<T>(
   if (!response.ok) {
     return {
       ok: false,
-      message: data?.message ?? `请求失败：HTTP ${response.status}`,
+      message:
+        data?.message ??
+        data?.detail ??
+        `请求失败：HTTP ${response.status}`,
       data: null,
     };
   }

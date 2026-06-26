@@ -1,5 +1,4 @@
 # gui_main.py
-
 from ui.app import run_app
 
 if __name__ == "__main__":

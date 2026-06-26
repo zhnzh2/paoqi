@@ -1,0 +1,20 @@
+{
+  "room_code": "ABC123",
+  "red": {
+    "uid": 1,
+    "username": "red",
+    "color": "R"
+  },
+  "blue": {
+    "uid": 2,
+    "username": "blue",
+    "color": "B"
+  },
+  "winner": "B",
+  "end_type": "agreement",
+  "game_over_reason": "agreement",
+  "turn_number": 2,
+  "created_at": 1781868261.2876077,
+  "game_started_at": 0.0,
+  "duration_seconds": 1781868261.3
+}

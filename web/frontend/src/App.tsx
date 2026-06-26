@@ -9,6 +9,7 @@ import MenuPage from "./components/menu/MenuPage";
 import ComingSoonPage from "./pages/ComingSoonPage";
 import RoomListPage from "./pages/RoomListPage";
 import RoomGamePage from "./pages/RoomGamePage";
+import RecordViewPage from "./pages/RecordViewPage";
 
 /**
  * GamePage 的薄包装，从 URL search params 读取初始参数。
@@ -119,6 +120,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <RoomGamePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/record/:folderName"
+        element={
+          <ProtectedRoute>
+            <RecordViewPage />
           </ProtectedRoute>
         }
       />

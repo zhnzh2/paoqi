@@ -1,12 +1,19 @@
 from __future__ import annotations
 
+import asyncio
+from copy import deepcopy
+import logging
 import os
 from pathlib import Path
-
 import json
+import tempfile
+from urllib.parse import quote
+import zipfile
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from starlette.background import BackgroundTask
 
 from core.game import Game
 from core.save_io import (
@@ -38,6 +45,13 @@ from web.backend.user_store import (
     update_user_profile,
 )
 from web.backend.room_manager import RoomManager
+from web.backend.record_saver import (
+    get_record_folder,
+    get_record,
+    list_user_records,
+    record_belongs_to_user,
+    save_game_record,
+)
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 SAVE_DIR = BASE_DIR / "saves"
@@ -72,6 +86,7 @@ app.add_middleware(
 session = LocalGameSession()
 auth_session = AuthSession()
 room_manager = RoomManager()
+logger = logging.getLogger(__name__)
 
 
 def require_auth(
@@ -303,6 +318,112 @@ def list_rooms(uid: int = Depends(require_auth)) -> dict:
     }
 
 
+# -------------------- 对局记录端点 --------------------
+
+
+@app.get("/api/user/{uid}/records")
+def get_user_records(uid: int, current_uid: int = Depends(require_auth)) -> dict:
+    """获取某用户参与的所有对局记录列表。"""
+    if current_uid != uid:
+        raise HTTPException(status_code=403, detail="只能查看自己的对局记录")
+    records = list_user_records(uid)
+    return {
+        "ok": True,
+        "message": "ok",
+        "data": {"records": records},
+    }
+
+
+@app.get("/api/records/{folder_name}")
+def get_record_detail(
+    folder_name: str,
+    current_uid: int = Depends(require_auth),
+) -> dict:
+    """获取单个对局记录的完整数据（info + 棋谱 + 回放步骤 + 聊天）。"""
+    if not record_belongs_to_user(folder_name, current_uid):
+        raise HTTPException(status_code=404, detail="对局记录不存在")
+    record = get_record(folder_name)
+    if record is None:
+        raise HTTPException(status_code=404, detail="对局记录不存在")
+    return {
+        "ok": True,
+        "message": "ok",
+        "data": record,
+    }
+
+
+@app.get("/api/records/{folder_name}/download")
+def download_record(
+    folder_name: str,
+    current_uid: int = Depends(require_auth),
+):
+    """下载单个对局记录的 ZIP 压缩包。"""
+    if not record_belongs_to_user(folder_name, current_uid):
+        raise HTTPException(status_code=404, detail="对局记录不存在")
+    folder = get_record_folder(folder_name)
+    if folder is None:
+        raise HTTPException(status_code=404, detail="对局记录不存在")
+
+    buf = tempfile.SpooledTemporaryFile(max_size=5 * 1024 * 1024)
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for fpath in sorted(folder.iterdir()):
+            if fpath.is_file():
+                zf.write(fpath, fpath.name)
+    buf.seek(0)
+
+    return StreamingResponse(
+        iter(lambda: buf.read(64 * 1024), b""),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{folder_name}.zip"',
+        },
+        background=BackgroundTask(buf.close),
+    )
+
+
+@app.get("/api/user/{uid}/records/download")
+def download_all_user_records(
+    uid: int,
+    current_uid: int = Depends(require_auth),
+):
+    """下载用户所有对局记录的 ZIP 压缩包。"""
+    if current_uid != uid:
+        raise HTTPException(status_code=403, detail="只能下载自己的对局记录")
+
+    records = list_user_records(uid)
+    if not records:
+        raise HTTPException(status_code=404, detail="没有可下载的对局记录")
+
+    buf = tempfile.SpooledTemporaryFile(max_size=10 * 1024 * 1024)
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for rec in records:
+            folder = get_record_folder(rec["folder_name"])
+            if folder is not None:
+                for fpath in sorted(folder.iterdir()):
+                    if fpath.is_file():
+                        zf.write(
+                            fpath,
+                            f"{rec['folder_name']}/{fpath.name}",
+                        )
+    buf.seek(0)
+
+    profile = get_user_by_uid(uid)
+    username = profile["username"] if profile else f"user{uid}"
+    encoded_filename = quote(f"paoqi-records-{username}.zip")
+
+    return StreamingResponse(
+        iter(lambda: buf.read(64 * 1024), b""),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": (
+                'attachment; filename="paoqi-records.zip"; '
+                f"filename*=UTF-8''{encoded_filename}"
+            ),
+        },
+        background=BackgroundTask(buf.close),
+    )
+
+
 # -------------------- WebSocket 端点 --------------------
 
 
@@ -320,6 +441,43 @@ async def _broadcast(room, data: dict) -> None:
         await _send_json(room.red_ws, data)
     if room.blue_ws and room.blue_connected:
         await _send_json(room.blue_ws, data)
+
+
+async def _try_save_record(room) -> None:
+    """若对局已结束且尚未保存，则保存对局记录。"""
+    if room.saved or room.saving or not room.game.game_over:
+        return
+    room.saving = True
+
+    red_info = {
+        "uid": room.red_uid,
+        "username": room.red_username,
+        "color": "R",
+    }
+    blue_info = {
+        "uid": room.blue_uid,
+        "username": room.blue_username,
+        "color": "B",
+    } if room.blue_uid else {"uid": None, "username": None, "color": "B"}
+
+    try:
+        result = await asyncio.to_thread(
+            save_game_record,
+            room_code=room.code,
+            game=room.game,
+            red_info=red_info,
+            blue_info=blue_info,
+            chat_history=room.chat_history,
+            action_history=room.action_history,
+            game_started_at=room.game_started_at,
+        )
+        room.saved = result is not None
+        if result:
+            logger.info("对局记录已保存：%s", result)
+        else:
+            logger.error("对局记录保存失败：房间 %s", room.code)
+    finally:
+        room.saving = False
 
 
 async def _handle_ws_message(room, uid: int, data: dict) -> None:
@@ -347,8 +505,13 @@ async def _handle_ws_message(room, uid: int, data: dict) -> None:
             )
             return
 
+        room.action_history.append({
+            "actor_color": color,
+            "action": deepcopy(action),
+        })
         payload = build_game_payload(room.game)
         await _broadcast(room, {"type": "game:state", "payload": payload})
+        await _try_save_record(room)
 
     # ---------- 确认自动动作 ----------
     elif msg_type == "game:confirm_pending":
@@ -383,8 +546,13 @@ async def _handle_ws_message(room, uid: int, data: dict) -> None:
             )
             return
 
+        room.action_history.append({
+            "actor_color": color,
+            "action": deepcopy(pending),
+        })
         payload = build_game_payload(room.game)
         await _broadcast(room, {"type": "game:state", "payload": payload})
+        await _try_save_record(room)
 
     # ---------- 协商终局 ----------
     elif msg_type == "game:endgame":
@@ -392,6 +560,7 @@ async def _handle_ws_message(room, uid: int, data: dict) -> None:
             room.game.finish_by_agreement()
             payload = build_game_payload(room.game)
             await _broadcast(room, {"type": "game:state", "payload": payload})
+            await _try_save_record(room)
         except Exception as e:
             await _send_json(
                 room.get_ws(uid),
@@ -400,14 +569,112 @@ async def _handle_ws_message(room, uid: int, data: dict) -> None:
 
     # ---------- 投降 ----------
     elif msg_type == "game:resign":
+        color = room.get_color(uid)
+        if color != room.game.current_player:
+            await _send_json(
+                room.get_ws(uid),
+                {"type": "game:error", "message": "只能由当前行动方投降"},
+            )
+            return
         try:
             room.game.resign()
+            payload = build_game_payload(room.game)
+            await _broadcast(room, {"type": "game:state", "payload": payload})
+            await _try_save_record(room)
+        except Exception as e:
+            await _send_json(
+                room.get_ws(uid),
+                {"type": "game:error", "message": f"投降失败：{e}"},
+            )
+
+    # ---------- 再来一局 ----------
+    elif msg_type == "game:restart":
+        if not room.game.game_over:
+            await _send_json(
+                room.get_ws(uid),
+                {"type": "game:error", "message": "当前对局尚未结束"},
+            )
+            return
+        if not room.is_full:
+            await _send_json(
+                room.get_ws(uid),
+                {"type": "game:error", "message": "对手已离开，无法再来一局"},
+            )
+            return
+
+        room.reset_for_rematch()
+
+        payload = build_game_payload(room.game)
+        players_info = room.get_players_info()
+        await _broadcast(room, {
+            "type": "game:restarted",
+            "payload": payload,
+            "players": players_info,
+        })
+
+    # ---------- 回退一步 ----------
+    elif msg_type == "game:undo":
+        if room.game.game_over:
+            await _send_json(
+                room.get_ws(uid),
+                {"type": "game:error", "message": "对局结束后不能回退"},
+            )
+            return
+        color = room.get_color(uid)
+        if color != room.game.current_player:
+            await _send_json(
+                room.get_ws(uid),
+                {"type": "game:error", "message": "只能在你的回合回退"},
+            )
+            return
+        try:
+            room.game.undo()
+            if room.action_history:
+                room.action_history.pop()
             payload = build_game_payload(room.game)
             await _broadcast(room, {"type": "game:state", "payload": payload})
         except Exception as e:
             await _send_json(
                 room.get_ws(uid),
-                {"type": "game:error", "message": f"投降失败：{e}"},
+                {"type": "game:error", "message": f"回退失败：{e}"},
+            )
+
+    # ---------- 悔棋（回到本回合开始） ----------
+    elif msg_type == "game:rewind":
+        if room.game.game_over:
+            await _send_json(
+                room.get_ws(uid),
+                {"type": "game:error", "message": "对局结束后不能悔棋"},
+            )
+            return
+        color = room.get_color(uid)
+        if color != room.game.current_player:
+            await _send_json(
+                room.get_ws(uid),
+                {"type": "game:error", "message": "只能在你的回合悔棋"},
+            )
+            return
+        try:
+            count = 0
+            while room.action_history:
+                last_entry = room.action_history[-1]
+                if last_entry.get("actor_color") != color:
+                    break
+                room.game.undo()
+                room.action_history.pop()
+                count += 1
+            if count == 0:
+                await _send_json(
+                    room.get_ws(uid),
+                    {"type": "game:error", "message": "本回合暂无可悔棋的操作"},
+                )
+                return
+            payload = build_game_payload(room.game)
+            await _broadcast(room, {"type": "game:state", "payload": payload})
+        except Exception as e:
+            await _send_json(
+                room.get_ws(uid),
+                {"type": "game:error", "message": f"悔棋失败：{e}"},
             )
 
     # ---------- 心跳 ----------
@@ -424,6 +691,7 @@ async def _handle_ws_message(room, uid: int, data: dict) -> None:
         color = room.get_color(uid)
         profile = get_user_by_uid(uid)
         sender_name = profile["username"] if profile else f"用户{uid}"
+        room.add_chat(sender_name, color, text)
         await _broadcast(room, {
             "type": "chat:message",
             "sender": sender_name,
@@ -503,7 +771,9 @@ async def room_websocket(
             "payload": payload,
         })
 
-        # 如果是新加入的蓝方，通知红方
+        # 如果是新加入的蓝方，标记对局开始并通知红方
+        if is_new_blue:
+            room.mark_game_started()
         if is_new_blue and room.red_ws and room.red_connected:
             await _send_json(room.red_ws, {
                 "type": "room:player_joined",
@@ -531,7 +801,8 @@ async def room_websocket(
             except json.JSONDecodeError:
                 await _send_json(websocket, {"type": "game:error", "message": "无效的 JSON"})
                 continue
-            await _handle_ws_message(room, uid, data)
+            async with room.message_lock:
+                await _handle_ws_message(room, uid, data)
     except WebSocketDisconnect:
         pass
     except Exception:

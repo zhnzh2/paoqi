@@ -139,6 +139,32 @@ export default function useRoomGameState(): RoomGameState & {
         setStatusIsError(false);
         break;
 
+      case "game:restarted":
+        if (data.payload) {
+          setPayload(data.payload);
+          setPhase("playing");
+        }
+        if (data.players && playerColor) {
+          const nextColor: PlayerColor =
+            playerColor === "R" ? "B" : "R";
+          setPlayerColor(nextColor);
+          const opp = (data.players as any[]).find(
+            (p: any) => p.color !== nextColor,
+          );
+          if (opp) {
+            setOpponent({
+              uid: opp.uid,
+              username: opp.username,
+              color: opp.color,
+            });
+            setOpponentConnected(opp.connected !== false);
+          }
+        }
+        setChatMessages([]);
+        setStatusMessage("新一局开始！");
+        setStatusIsError(false);
+        break;
+
       case "chat:message":
         setChatMessages((prev) => [
           ...prev,

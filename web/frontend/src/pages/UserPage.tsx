@@ -4,8 +4,9 @@ import { useAuth } from "../auth/AuthContext";
 import { authApi, type UserProfile } from "../api/authApi";
 import BasicInfoPanel from "../components/user/BasicInfoPanel";
 import SettingsPanel from "../components/user/SettingsPanel";
+import RecordListPanel from "../components/user/RecordListPanel";
 
-type PanelKey = "info" | "settings";
+type PanelKey = "info" | "settings" | "records";
 
 export default function UserPage() {
   const { uid: uidStr } = useParams<{ uid: string }>();
@@ -17,6 +18,7 @@ export default function UserPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activePanel, setActivePanel] = useState<PanelKey>("info");
+  const isOwner = currentUser?.uid === uid;
 
   // 加载目标用户的 profile
   useEffect(() => {
@@ -48,6 +50,12 @@ export default function UserPage() {
     };
   }, [uid]);
 
+  useEffect(() => {
+    if (!isOwner && activePanel === "records") {
+      setActivePanel("info");
+    }
+  }, [activePanel, isOwner]);
+
   // 检查登录
   if (isAuthLoading) {
     return (
@@ -61,12 +69,14 @@ export default function UserPage() {
     return <Navigate to="/login" replace />;
   }
 
-  const isOwner = currentUser?.uid === uid;
-
   const panelLabels: Record<PanelKey, string> = {
     info: "基本信息",
     settings: "设置",
+    records: "历史对局",
   };
+  const visiblePanels = (Object.keys(panelLabels) as PanelKey[]).filter(
+    (key) => key !== "records" || isOwner,
+  );
 
   return (
     <div className="user-page">
@@ -96,7 +106,7 @@ export default function UserPage() {
         </div>
 
         <nav className="user-sidebar-nav">
-          {(Object.keys(panelLabels) as PanelKey[]).map((key) => (
+          {visiblePanels.map((key) => (
             <button
               key={key}
               className={`user-nav-item ${activePanel === key ? "user-nav-item-active" : ""}`}
@@ -121,6 +131,8 @@ export default function UserPage() {
               isOwner={isOwner}
               onProfileUpdated={setProfile}
             />
+          ) : activePanel === "records" ? (
+            <RecordListPanel uid={uid} />
           ) : (
             <SettingsPanel isOwner={isOwner} />
           )

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Piece from "./Piece";
 
 type PieceData = {
@@ -25,7 +26,7 @@ type CellProps = {
   onLeave: () => void;
 };
 
-export default function Cell({
+function Cell({
   x,
   y,
   piece,
@@ -90,3 +91,5 @@ export default function Cell({
     </button>
   );
 }
+
+export default memo(Cell);

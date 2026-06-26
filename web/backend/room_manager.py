@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import random
 import string
 import time
@@ -33,14 +34,20 @@ class Room:
         self.red_connected = False
         self.blue_connected = False
         self.created_at = time.time()
+        self.chat_history: list[dict[str, Any]] = []
+        self.action_history: list[dict[str, Any]] = []  # 动作记录（用于重放）
+        self.game_started_at: float | None = None  # 对局开始时间（双方到齐时）
+        self.saved = False  # 是否已保存对局记录
+        self.saving = False
+        self.message_lock = asyncio.Lock()
 
     @property
     def is_full(self) -> bool:
-        return self.blue_uid is not None
+        return self.blue_uid not in (None, -1)
 
     @property
     def player_count(self) -> int:
-        return 1 + (1 if self.blue_uid else 0)
+        return int(self.red_uid != -1) + int(self.blue_uid not in (None, -1))
 
     def get_color(self, uid: int) -> str | None:
         if uid == self.red_uid:
@@ -68,7 +75,6 @@ class Room:
         if uid == self.red_uid:
             self.red_connected = False
         elif uid == self.blue_uid:
-            self.red_connected = False
             self.blue_connected = False
 
     def get_players_info(self) -> list[dict[str, Any]]:
@@ -82,6 +88,39 @@ class Room:
                  "connected": self.blue_connected},
             )
         return players
+
+    def add_chat(self, sender: str, color: str, text: str) -> None:
+        """记录一条聊天消息。"""
+        self.chat_history.append({
+            "sender": sender,
+            "color": color,
+            "text": text,
+            "time": time.time(),
+        })
+
+    def mark_game_started(self) -> None:
+        """标记对局开始时间（双方到齐时调用）。"""
+        if self.game_started_at is None:
+            self.game_started_at = time.time()
+
+    def reset_for_rematch(self) -> None:
+        """交换双方阵营并重置下一局的临时状态。"""
+        self.red_uid, self.blue_uid = self.blue_uid, self.red_uid
+        self.red_username, self.blue_username = (
+            self.blue_username,
+            self.red_username,
+        )
+        self.red_ws, self.blue_ws = self.blue_ws, self.red_ws
+        self.red_connected, self.blue_connected = (
+            self.blue_connected,
+            self.red_connected,
+        )
+        self.game = Game()
+        self.chat_history = []
+        self.action_history = []
+        self.game_started_at = time.time()
+        self.saved = False
+        self.saving = False
 
 
 class RoomManager:
@@ -118,7 +157,7 @@ class RoomManager:
         room = self._rooms.get(code)
         if room is None:
             raise ValueError("房间不存在")
-        if room.blue_uid is not None:
+        if room.is_full:
             raise ValueError("房间已满")
         if uid == room.red_uid:
             # 自己创建的房间，不用重复加入，直接返回

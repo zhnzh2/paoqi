@@ -174,12 +174,29 @@ export default function RoomGamePage() {
     );
   }, [modal]);
 
-  /** 撤销（仅自己的回合可撤销） */
+  /** 回退一步 */
   const handleUndo = useCallback(() => {
-    // 联机模式暂不支持撤销
-    setStatusMessage("联机模式暂不支持撤销操作");
-    setStatusIsError(true);
-  }, [setStatusMessage, setStatusIsError]);
+    if (!isMyTurn) {
+      setStatusMessage("只能在自己的回合回退");
+      setStatusIsError(true);
+      return;
+    }
+    send({ type: "game:undo" });
+    setStatusMessage("已回退一步");
+    setStatusIsError(false);
+  }, [isMyTurn, send, setStatusMessage, setStatusIsError]);
+
+  /** 悔棋（回到本回合开始） */
+  const handleRewind = useCallback(() => {
+    if (!isMyTurn) {
+      setStatusMessage("只能在自己的回合悔棋");
+      setStatusIsError(true);
+      return;
+    }
+    send({ type: "game:rewind" });
+    setStatusMessage("已悔棋");
+    setStatusIsError(false);
+  }, [isMyTurn, send, setStatusMessage, setStatusIsError]);
 
   /** 导出棋谱 */
   const handleExportRecord = useCallback(() => {
@@ -246,35 +263,24 @@ export default function RoomGamePage() {
     <div className="room-game-page">
       <UserBar />
 
-      {/* 顶部信息栏（精简：仅标题 + 房间码） */}
+      {/* 顶部信息栏（极简：仅标题 + 房间码，详细状态在侧边栏 RoomInfoPanel） */}
       <div className="room-info-bar">
-        <div className="room-info-bar-left">
-          <span className="room-info-bar-title">房间对战</span>
-        </div>
-        <div className="room-info-bar-center">
-          <span
-            className="room-info-bar-code"
-            title="点击复制房间码"
-            onClick={() => {
-              navigator.clipboard.writeText(displayRoomCode).then(() => {
-                setStatusMessage("房间码已复制到剪贴板");
-                setStatusIsError(false);
-              });
-            }}
-          >
-            {displayRoomCode}
-          </span>
-          {!isConnected ? (
-            <span className="room-info-disconnected">连接断开</span>
-          ) : null}
-        </div>
-        <div className="room-info-bar-right">
-          {phase === "playing" && (
-            <span className="room-info-turn-indicator">
-              {isMyTurn ? "你的回合" : "对手回合"}
-            </span>
-          )}
-        </div>
+        <span className="room-info-bar-title">房间对战</span>
+        <span
+          className="room-info-bar-code"
+          title="点击复制房间码"
+          onClick={() => {
+            navigator.clipboard.writeText(displayRoomCode).then(() => {
+              setStatusMessage("房间码已复制到剪贴板");
+              setStatusIsError(false);
+            });
+          }}
+        >
+          {displayRoomCode}
+        </span>
+        {!isConnected ? (
+          <span className="room-info-disconnected">断开</span>
+        ) : null}
       </div>
 
       {/* 等待对手界面 */}
@@ -347,6 +353,7 @@ export default function RoomGamePage() {
             onNewGame={handleLeaveRoom}
             onRestart={() => {}}
             onUndo={handleUndo}
+            onRewind={handleRewind}
             onExportRecord={handleExportRecord}
             onOpenSaveLoad={() => {
               setStatusMessage("联机模式不支持存档功能");
@@ -398,6 +405,9 @@ export default function RoomGamePage() {
                     playerColor === "B" ? isConnected : opponentConnected
                   }
                   myColor={playerColor}
+                  isMyTurn={isMyTurn}
+                  phase={phase}
+                  isConnected={isConnected}
                 />
               ) : null
             }
@@ -408,8 +418,9 @@ export default function RoomGamePage() {
             <GameOverModal
               payload={payload}
               onRestart={() => {
-                setStatusMessage("联机模式不支持重开，请返回房间列表创建新房间");
-                setStatusIsError(true);
+                send({ type: "game:restart" });
+                setStatusMessage("已请求再来一局");
+                setStatusIsError(false);
               }}
               onOpenSaveLoad={() => {
                 setStatusMessage("联机模式不支持存档功能");

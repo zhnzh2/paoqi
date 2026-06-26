@@ -52,9 +52,12 @@ Thumbs.db
 # Web frontend vite cache
 web/frontend/.vite/
 
-# User data (local storage)
+# Runtime user data and generated records
 data/*
 !data/.gitkeep
+!data/records/
+data/records/*
+!data/records/.gitkeep
 
 docs/
 

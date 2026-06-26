@@ -30,6 +30,7 @@ type GameSidebarProps = {
   hideSaveLoad?: boolean;
   chatSlot?: React.ReactNode;
   roomInfoSlot?: React.ReactNode;
+  onRewind?: () => void;
 };
 
 export default function GameSidebar({
@@ -61,6 +62,7 @@ export default function GameSidebar({
   hideSaveLoad,
   chatSlot,
   roomInfoSlot,
+  onRewind,
 }: GameSidebarProps) {
   return (
     <div className={`right-column ${compactSidebar ? "right-column-compact" : ""}`}>
@@ -79,7 +81,10 @@ export default function GameSidebar({
           {!hideRestart ? (
             <button onClick={onRestart} disabled={initLoading || isSidebarBusy}>重开</button>
           ) : null}
-          <button onClick={onUndo} disabled={initLoading || isSidebarBusy}>撤销</button>
+          <button onClick={onUndo} disabled={initLoading || isSidebarBusy}>回退</button>
+          {onRewind ? (
+            <button onClick={onRewind} disabled={initLoading || isSidebarBusy}>悔棋</button>
+          ) : null}
           <button onClick={onExportRecord} disabled={initLoading || isSidebarBusy}>导出棋谱</button>
           {!hideSaveLoad ? (
             <button onClick={onOpenSaveLoad} disabled={initLoading || isSidebarBusy}>存档</button>

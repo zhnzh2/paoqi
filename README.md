@@ -27,7 +27,8 @@ paoqi/
 ├── requirements.txt         # Python 依赖
 │
 ├── core/                    # 核心规则引擎
-│   ├── game.py              # Game 类（主状态机，500行）
+│   ├── game.py              # Game 类与公共接口
+│   ├── game_impl/           # 按职责拆分的动作、流程和结算实现
 │   ├── board.py             # 9×9 棋盘
 │   ├── models.py            # Piece / Cannon 数据类
 │   ├── cannon.py            # 炮管扫描、炮口判定
@@ -37,19 +38,11 @@ paoqi/
 │   ├── state_io.py          # 状态快照 / 导入导出
 │   ├── undo.py              # 撤销机制
 │   ├── AI.py                # AlphaBeta / Greedy / Random AI
-│   ├── game_actions.py      # 动作分发（move/muzzle/fire/eat）
-│   ├── game_cannon.py       # 炮管集合管理
-│   ├── game_flow.py         # 回合 / 阶段流转
-│   ├── game_legal.py        # 合法动作生成
-│   ├── game_move.py         # 落子 / 放置 / 升级实现
-│   ├── game_fire.py         # 打炮实现
-│   ├── game_eat.py          # 吃子实现
-│   ├── game_clone.py        # 深拷贝实现
-│   └── game_report.py       # 状态报告 / 游戏结束报告
+│   └── save_io.py           # 文件存档和棋谱导出
 │
 ├── ui/                      # Pygame 桌面界面
-│   ├── app.py               # 主循环（212行）
-│   ├── event_handlers.py    # 菜单和游戏事件分发
+│   ├── app.py               # 主循环
+│   ├── handlers/            # 菜单和游戏事件处理
 │   ├── controller.py        # 坐标转换、高亮计算
 │   ├── renderer.py          # 顶层渲染调度
 │   ├── render_board.py      # 棋盘渲染
@@ -66,10 +59,13 @@ paoqi/
 │
 ├── web/                     # Web 全栈版本
 │   ├── backend/
-│   │   ├── app.py           # FastAPI 后端（REST API）
+│   │   ├── app.py           # FastAPI REST 与 WebSocket 入口
 │   │   ├── adapters.py      # 响应构建器
+│   │   ├── room_manager.py  # 联机房间与连接状态
+│   │   ├── record_saver.py  # 终局记录、回放和下载
 │   │   ├── schemas.py       # Pydantic 请求模型
-│   │   └── session_store.py # 会话管理
+│   │   ├── session_store.py # 登录令牌和本地对局会话
+│   │   └── user_store.py    # 用户资料、密码和设置
 │   └── frontend/
 │       ├── index.html       # Vite 入口
 │       ├── package.json     # 前端依赖
@@ -82,6 +78,9 @@ paoqi/
 │           ├── api/         # API 请求层
 │           ├── types/       # TypeScript 类型定义
 │           └── utils/       # 工具函数
+│
+├── data/                    # 运行时用户数据与联机对局记录（不提交）
+│   └── records/.gitkeep     # 对局记录目录占位
 │
 ├── test/                    # 测试
 │   ├── test_state_integrity.py  # 状态完整性测试
@@ -168,11 +167,10 @@ python gui_main.py
 
 前后端分离的 Web 全栈版本。
 
-**启动后端**（端口 8000）：
+**启动后端**（在项目根目录执行，端口 8000）：
 
 ```bash
-cd web/backend
-uvicorn app:app --host 127.0.0.1 --port 8000 --reload
+uvicorn web.backend.app:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 **启动前端**（端口 5173）：
@@ -184,6 +182,18 @@ npm run dev
 ```
 
 然后浏览器打开 `http://127.0.0.1:5173`。
+
+Web 版本当前支持：
+
+- 注册、登录、个人资料和界面设置
+- 浏览器本地单机对局
+- 创建或加入联机房间、断线重连和房间聊天
+- 联机回退、悔棋、投降、协商终局和交换阵营再来一局
+- 联机终局后自动保存棋谱、逐步棋盘快照和聊天记录
+- 在个人页面查看、回放及下载自己的历史对局
+
+运行时数据保存在 `data/` 下。用户资料、密码哈希和生成的对局记录均已被
+`.gitignore` 排除，仓库只保留必要的 `.gitkeep` 占位文件。
 
 环境变量：
 - `PAOQI_CORS_ORIGINS`：CORS 允许的来源（默认 `http://127.0.0.1:5173,http://localhost:5173`）
@@ -264,6 +274,8 @@ python test/test_ai_vs_ai.py
 - **`_impl` 包装模式**：核心逻辑在 `_impl` 函数中实现，Game 类保留薄包装方法，便于按文件拆分
 - **结构化动作系统**：所有操作统一为 `{type, ...}` 字典，支持 undo / snapshot / 预览
 - **事件系统**：每次操作生成结构化事件列表（`piece_change` / `new_cannon` / `fire` / `capture` 等），UI 层可据此做动画或增量更新
+- **联机权威状态**：房间中的规则计算由后端 `Game` 实例串行执行，通过 WebSocket 向双方同步
+- **终局记录系统**：联机对局结束后生成元信息、棋谱、回放步骤和聊天记录，并按参与用户建立查询索引
 
 ---
 
@@ -279,7 +291,7 @@ python test/test_ai_vs_ai.py
 ### 添加新功能
 
 1. 核心规则修改 → `core/`
-2. 如果需要新的游戏逻辑，在对应的 `game_*.py` 中添加 `_impl` 函数
+2. 如果需要新的游戏逻辑，在 `core/game_impl/` 对应模块中添加 `_impl` 函数
 3. 在 `game.py` 中添加薄包装方法
 4. 如需暴露给前端，更新 `state_io.py` 的快照函数和 `web/backend/adapters.py`
 
